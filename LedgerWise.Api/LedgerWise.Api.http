@@ -1,0 +1,6 @@
+@LedgerWise.Api_HostAddress = http://localhost:5109
+
+GET {{LedgerWise.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
