@@ -1,0 +1,23 @@
+# .NET
+**/bin/
+**/obj/
+
+# Node.js / Expo
+node_modules/
+.expo/
+dist/
+web-build/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
