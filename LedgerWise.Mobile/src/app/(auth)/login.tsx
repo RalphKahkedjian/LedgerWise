@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { login } from "@/services/auth";
+import { useAuth } from "@/context/AuthContext";
 import {
   View,
   Text,
@@ -24,7 +25,10 @@ import {
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
 
-export default function HomeScreen() {
+export default function LoginScreen() {
+
+  const {signIn} = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -38,19 +42,20 @@ export default function HomeScreen() {
 
   async function handleLogin() {
     if (!email.trim() || !password) {
-      Alert.alert("Missing Information", "Please fill in all fields");
+      Alert.alert("Missing information", "Please enter your email and password.");
       return;
     }
 
     try {
-      await login(email.trim(), password);
+      await signIn(email.trim(), password);
+
       router.replace("/dashboard");
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Login failed:", error);
 
       Alert.alert(
         "Login failed",
-        "Check your credentials or network connections."
+        "Invalid email or password. Please try again."
       );
     }
   }

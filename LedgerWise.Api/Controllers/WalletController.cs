@@ -23,10 +23,15 @@ public class WalletController : ControllerBase
   {
     var result = await _walletService.GetWalletAsync(User);
 
-    if(!result.Success)
-      return NotFound(result.Message);
-
-    return Ok(result.Data);
+    if (!result.Success || result.Data == null)
+        return NotFound(result.Message);
+        
+    return Ok(new
+    {
+        result.Data!.Id,
+        result.Data.UserId,
+        result.Data.Balance
+    });
   }
 
 [HttpPost("deposit")]

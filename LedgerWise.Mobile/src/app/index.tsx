@@ -1,33 +1,14 @@
-import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
-import { Redirect } from "expo-router";
 
+import { Redirect } from "expo-router";
+import { View, ActivityIndicator } from "react-native";
+
+import { useAuth } from "../context/AuthContext";
 import { COLORS } from "../constants/colors";
-import { hasValidSession } from "../services/auth";
 
 export default function Index() {
-  const [isAuthenticated, setIsAuthenticated] =
-    useState<boolean | null>(null);
+  const { isAuthenticated, isLoading } = useAuth();
 
-  useEffect(() => {
-    async function checkSession() {
-      console.log("Checking authentication session...");
-
-      try {
-        const valid = await hasValidSession();
-
-        console.log("Session valid:", valid);
-        setIsAuthenticated(valid);
-      } catch (error) {
-        console.error("Session check failed:", error);
-        setIsAuthenticated(false);
-      }
-    }
-
-    checkSession();
-  }, []);
-
-  if (isAuthenticated === null) {
+  if (isLoading) {
     return (
       <View
         style={{
@@ -37,12 +18,17 @@ export default function Index() {
           backgroundColor: COLORS.background,
         }}
       >
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator
+          size="large"
+          color={COLORS.primary}
+        />
       </View>
     );
   }
 
   return (
-    <Redirect href={isAuthenticated ? "/dashboard" : "/login"} />
+    <Redirect
+      href={isAuthenticated ? "/dashboard" : "/login"}
+    />
   );
 }

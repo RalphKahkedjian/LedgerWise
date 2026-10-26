@@ -1,30 +1,14 @@
 
-import { useEffect, useState } from "react";
 import { Stack, Redirect } from "expo-router";
 import { View, ActivityIndicator } from "react-native";
 
-import { hasValidSession } from "../../services/auth";
+import { useAuth } from "../../context/AuthContext";
 import { COLORS } from "../../constants/colors";
 
 export default function AppLayout() {
-  const [isAuthenticated, setIsAuthenticated] =
-    useState<boolean | null>(null);
+  const { isAuthenticated, isLoading } = useAuth();
 
-  useEffect(() => {
-    async function checkAuthentication() {
-      try {
-        const valid = await hasValidSession();
-        setIsAuthenticated(valid);
-      } catch (error) {
-        console.error("Authentication check failed:", error);
-        setIsAuthenticated(false);
-      }
-    }
-
-    checkAuthentication();
-  }, []);
-
-  if (isAuthenticated === null) {
+  if (isLoading) {
     return (
       <View
         style={{
