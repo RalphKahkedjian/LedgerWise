@@ -100,7 +100,7 @@ public class WalletService : IWalletService
             return ServiceResult<object>.Fail("Sender wallet not found.");
 
         var receiverWallet = await _context.Wallets
-            .FirstOrDefaultAsync(w => w.UserId == request.ReceiverUserId);
+            .FirstOrDefaultAsync(w => w.User.Email.ToLower() == request.ReceiverEmail.ToLower());
 
         if (receiverWallet == null)
             return ServiceResult<object>.Fail("Receiver wallet not found.");
@@ -123,14 +123,16 @@ public class WalletService : IWalletService
             {
                 WalletId = senderWallet.Id,
                 Amount = request.Amount,
-                Type = "Transfer Out"
+                Type = "Transfer Out",
+                CounterpartyUserId = receiverWallet.UserId
             });
 
             _context.Transactions.Add(new Transaction
             {
                 WalletId = receiverWallet.Id,
                 Amount = request.Amount,
-                Type = "Transfer In"
+                Type = "Transfer In",
+                CounterpartyUserId = senderWallet.UserId
             });
 
             await _context.SaveChangesAsync();
@@ -187,7 +189,17 @@ public class WalletService : IWalletService
                 Id = t.Id,
                 Amount = t.Amount,
                 Type = t.Type,
-                CreatedAt = t.CreatedAt
+                CreatedAt = t.CreatedAt,
+
+                CounterpartyUserId = t.CounterpartyUserId,
+
+                CounterpartyName = t.CounterpartyUser != null
+                    ? t.CounterpartyUser.Name
+                    : null,
+
+                CounterpartyEmail = t.CounterpartyUser != null
+                    ? t.CounterpartyUser.Email
+                    : null
             })
             .ToListAsync();
 

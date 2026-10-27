@@ -17,4 +17,8 @@ public class Transaction
     public Category? category {get; set;}
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public int? CounterpartyUserId { get; set; }
+
+    public User? CounterpartyUser { get; set; }
 }

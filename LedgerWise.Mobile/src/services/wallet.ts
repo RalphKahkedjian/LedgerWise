@@ -10,7 +10,10 @@ export type WalletTransaction = {
   id: number;
   amount: number;
   type: string;
-  createdAt: string
+  createdAt: string;
+  counterpartyUserId: number | null;
+  counterpartyName: string | null;
+  counterpartyEmail: string | null;
 }
 
 export async function getWallet(): Promise<Wallet> {
@@ -37,9 +40,9 @@ export async function withdraw(amount: number) {
   return response.data;
 }
 
-export async function transfer(receiverUserId: number, amount: number) {
+export async function transfer(receiverEmail: string, amount: number) {
   const response = await api.post("/Wallet/transfer", {
-    receiverUserId,
+    receiverEmail,
     amount
   });
 

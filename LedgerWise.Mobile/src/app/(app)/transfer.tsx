@@ -4,29 +4,26 @@ import { Pressable, StyleSheet, Text, TextInput, Alert, ActivityIndicator } from
 import { SafeAreaView } from "react-native-safe-area-context";
 import { transfer } from "@/services/wallet";
 import axios from "axios";
+import { router } from "expo-router";
 
 
 export default function TransferScreen() {
 
-  const [receiverUserId, setReceiverUserId] = useState("")
+  const [receiverEmail, setReceiverEmail] = useState("")
   const [amount, setAmount] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   async function handleTransfer() {
-    const receiverText = receiverUserId.trim();
+    const receiverText = receiverEmail.trim();
     const amountText = amount.trim();
 
-    const receiverId = Number(receiverText);
     const value = Number(amountText);
+    const email = receiverEmail.trim().toLowerCase();
 
-    if (
-      !/^[1-9]\d*$/.test(receiverText) ||
-      !Number.isSafeInteger(receiverId)
-    ) {
-      Alert.alert(
-        "Invalid receiver",
-        "Enter a valid receiver User ID."
-      );
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      Alert.alert("Invalid Email", "Please enter a valid receiver email.");
       return;
     }
 
@@ -47,15 +44,18 @@ export default function TransferScreen() {
 
     try {
       setIsLoading(true);
-      await transfer(receiverId, value);
+      await transfer(receiverEmail, value);
 
       Alert.alert(
         "Transfer successful",
         `$${value.toFixed(2)} transferred successfully!`
       );
 
-      setReceiverUserId("");
+      setReceiverEmail("");
       setAmount("");
+      
+      router.push("/dashboard")
+      
     } catch (error) {
       console.error("Transfer failed:", error);
 
@@ -81,14 +81,16 @@ export default function TransferScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Transfer Money</Text>
-      <Text style={styles.label}>Receiver User ID</Text>
+      <Text style={styles.label}>Receiver Email</Text>
 
       <TextInput
         style={styles.input}
-        placeholder="Enter receiver ID"
-        keyboardType="number-pad"
-        value={receiverUserId}
-        onChangeText={setReceiverUserId}
+        placeholder="Enter receiver email"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
+        value={receiverEmail}
+        onChangeText={setReceiverEmail}
       />
 
       <Text style={styles.label}>Amount</Text>

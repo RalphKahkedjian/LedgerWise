@@ -37,6 +37,7 @@ export default function AppLayout() {
       <Stack.Screen name="deposit" options={{headerShown: false}} />
       <Stack.Screen name="withdraw" options={{headerShown: false}} />
       <Stack.Screen name="transfer" options={{headerShown: false}} />
+      <Stack.Screen name="transaction-details" options={{headerShown: false}} />
     </Stack>
   );
 }

@@ -58,6 +58,9 @@ namespace LedgerWise.Api.Migrations
                     b.Property<int?>("CategoryId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("CounterpartyUserId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -71,6 +74,8 @@ namespace LedgerWise.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
+
+                    b.HasIndex("CounterpartyUserId");
 
                     b.HasIndex("WalletId");
 
@@ -140,11 +145,18 @@ namespace LedgerWise.Api.Migrations
                         .WithMany()
                         .HasForeignKey("CategoryId");
 
+                    b.HasOne("LedgerWise.Api.Models.User", "CounterpartyUser")
+                        .WithMany()
+                        .HasForeignKey("CounterpartyUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("LedgerWise.Api.Models.Wallet", "Wallet")
                         .WithMany()
                         .HasForeignKey("WalletId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("CounterpartyUser");
 
                     b.Navigation("Wallet");
 

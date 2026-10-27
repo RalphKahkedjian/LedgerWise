@@ -1,3 +1,4 @@
+
 import { useCallback, useMemo, useState } from "react";
 import {
   View,
@@ -22,6 +23,12 @@ type TransactionGroup = {
   items: WalletTransaction[];
 };
 
+type TransactionFilter =
+  | "All"
+  | "Deposits"
+  | "Withdrawals"
+  | "Transfers";
+
 function isIncoming(type: string) {
   return type === "Deposit" || type === "Transfer In";
 }
@@ -33,36 +40,11 @@ function formatMoney(amount: number) {
   });
 }
 
-
 export default function TransactionsScreen() {
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  type TransactionFilter = "All" | "Deposits" | "Withdrawals" | "Transfers";
-
   const [filter, setFilter] = useState<TransactionFilter>("All");
-
-  const filteredTransactions = transactions.filter((transaction) => {
-    if (filter === "All") return true;
-
-    if (filter === "Deposits") {
-      return transaction.type === "Deposit";
-    }
-
-    if (filter === "Withdrawals") {
-      return transaction.type === "Withdraw";
-    }
-
-    if (filter === "Transfers") {
-      return (
-        transaction.type === "Transfer In" ||
-        transaction.type === "Transfer Out"
-      );
-    }
-
-    return true;
-  });
 
   useFocusEffect(
     useCallback(() => {
@@ -99,84 +81,164 @@ export default function TransactionsScreen() {
     }, [])
   );
 
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((transaction) => {
+      if (filter === "All") return true;
+
+      if (filter === "Deposits") {
+        return transaction.type === "Deposit";
+      }
+
+      if (filter === "Withdrawals") {
+        return transaction.type === "Withdraw";
+      }
+
+      if (filter === "Transfers") {
+        return (
+          transaction.type === "Transfer In" ||
+          transaction.type === "Transfer Out"
+        );
+      }
+
+      return true;
+    });
+  }, [transactions, filter]);
+
   const { groups, totalIn, totalOut } = useMemo(() => {
     const sorted = [...filteredTransactions].sort(
       (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        new Date(b.createdAt).getTime() -
+        new Date(a.createdAt).getTime()
     );
 
     const map = new Map<string, WalletTransaction[]>();
     let incomingTotal = 0;
     let outgoingTotal = 0;
 
-    for (const t of sorted) {
-      const title = new Date(t.createdAt).toLocaleDateString("en-US", {
+    for (const transaction of sorted) {
+      const title = new Date(
+        transaction.createdAt
+      ).toLocaleDateString("en-US", {
         month: "long",
         year: "numeric",
       });
 
-      if (!map.has(title)) map.set(title, []);
-      map.get(title)!.push(t);
+      if (!map.has(title)) {
+        map.set(title, []);
+      }
 
-      if (isIncoming(t.type)) incomingTotal += Math.abs(t.amount);
-      else outgoingTotal += Math.abs(t.amount);
+      map.get(title)!.push(transaction);
+
+      if (isIncoming(transaction.type)) {
+        incomingTotal += Math.abs(transaction.amount);
+      } else {
+        outgoingTotal += Math.abs(transaction.amount);
+      }
     }
 
     return {
-      groups: Array.from(map, ([title, items]) => ({ title, items })),
+      groups: Array.from(map, ([title, items]) => ({
+        title,
+        items,
+      })),
       totalIn: incomingTotal,
       totalOut: outgoingTotal,
     };
-  }, [transactions, filter]);
+  }, [filteredTransactions]);
 
   function renderGroup({ item: group }: { item: TransactionGroup }) {
     return (
       <View style={styles.group}>
         <Text style={styles.groupTitle}>{group.title}</Text>
-        
 
         <View style={styles.card}>
           {group.items.map((transaction, index) => {
             const incoming = isIncoming(transaction.type);
 
             return (
-              <View
+              <Pressable
                 key={transaction.id}
+                onPress={() =>
+                  router.push({
+                    pathname: "/transaction-details",
+                    params: {
+                      id: String(transaction.id),
+                    },
+                  })
+                }
                 style={[
                   styles.row,
-                  index < group.items.length - 1 && styles.rowBorder,
+                  index < group.items.length - 1 &&
+                    styles.rowBorder,
                 ]}
               >
                 <View
                   style={[
                     styles.iconContainer,
-                    { backgroundColor: incoming ? "#DCFCE7" : "#FEE2E2" },
+                    {
+                      backgroundColor: incoming
+                        ? "#DCFCE7"
+                        : "#FEE2E2",
+                    },
                   ]}
                 >
                   <Ionicons
                     name={incoming ? "arrow-down" : "arrow-up"}
                     size={18}
-                    color={incoming ? COLORS.success : COLORS.error}
+                    color={
+                      incoming ? COLORS.success : COLORS.error
+                    }
                   />
                 </View>
 
                 <View style={styles.info}>
-                  <Text style={styles.type}>{transaction.type}</Text>
+                  <Text style={styles.type}>
+                    {transaction.type}
+                  </Text>
+
+                  {transaction.counterpartyName ? (
+                    <Text
+                      style={styles.counterparty}
+                      numberOfLines={1}
+                    >
+                      {transaction.type === "Transfer In"
+                        ? "From: "
+                        : "To: "}
+                      {transaction.counterpartyName}
+                    </Text>
+                  ) : null}
+
                   <Text style={styles.date}>
-                    {new Date(transaction.createdAt).toLocaleDateString(
-                      "en-US",
-                      { month: "short", day: "numeric", year: "numeric" }
-                    )}
+                    {new Date(
+                      transaction.createdAt
+                    ).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
                   </Text>
                 </View>
 
-                <Text
-                  style={[styles.amount, incoming && styles.incomingAmount]}
-                >
-                  {incoming ? "+" : "−"}
-                  {formatMoney(Math.abs(transaction.amount))}
-                </Text>
-              </View>
+                <View style={styles.amountContainer}>
+                  <Text
+                    style={[
+                      styles.amount,
+                      incoming && styles.incomingAmount,
+                    ]}
+                  >
+                    {incoming ? "+" : "−"}
+                    {formatMoney(
+                      Math.abs(transaction.amount)
+                    )}
+                  </Text>
+
+                  <Ionicons
+                    name="chevron-forward"
+                    size={15}
+                    color={COLORS.placeholder}
+                  />
+                </View>
+              </Pressable>
             );
           })}
         </View>
@@ -187,21 +249,49 @@ export default function TransactionsScreen() {
   const summary = (
     <View style={styles.summaryRow}>
       <View style={styles.summaryCard}>
-        <View style={[styles.summaryIcon, { backgroundColor: "#DCFCE7" }]}>
-          <Ionicons name="arrow-down" size={16} color={COLORS.success} />
+        <View
+          style={[
+            styles.summaryIcon,
+            { backgroundColor: "#DCFCE7" },
+          ]}
+        >
+          <Ionicons
+            name="arrow-down"
+            size={16}
+            color={COLORS.success}
+          />
         </View>
+
         <Text style={styles.summaryLabel}>Money in</Text>
-        <Text style={styles.summaryAmount} numberOfLines={1} adjustsFontSizeToFit>
+        <Text
+          style={styles.summaryAmount}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
           {formatMoney(totalIn)}
         </Text>
       </View>
 
       <View style={styles.summaryCard}>
-        <View style={[styles.summaryIcon, { backgroundColor: "#FEE2E2" }]}>
-          <Ionicons name="arrow-up" size={16} color={COLORS.error} />
+        <View
+          style={[
+            styles.summaryIcon,
+            { backgroundColor: "#FEE2E2" },
+          ]}
+        >
+          <Ionicons
+            name="arrow-up"
+            size={16}
+            color={COLORS.error}
+          />
         </View>
+
         <Text style={styles.summaryLabel}>Money out</Text>
-        <Text style={styles.summaryAmount} numberOfLines={1} adjustsFontSizeToFit>
+        <Text
+          style={styles.summaryAmount}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
           {formatMoney(totalOut)}
         </Text>
       </View>
@@ -223,7 +313,11 @@ export default function TransactionsScreen() {
             size={32}
             color={COLORS.placeholder}
           />
-          <Text style={styles.stateTitle}>Something went wrong</Text>
+
+          <Text style={styles.stateTitle}>
+            Something went wrong
+          </Text>
+
           <Text style={styles.stateText}>
             {error} Leave this screen and come back to try again.
           </Text>
@@ -248,33 +342,45 @@ export default function TransactionsScreen() {
                 />
                 <Text style={styles.backText}>Back</Text>
               </Pressable>
-              <Text style={styles.title}>Transaction history</Text>
+
+              <Text style={styles.title}>
+                Transaction history
+              </Text>
+
               <Text style={styles.subtitle}>
                 All your wallet activity in one place
               </Text>
+
               <View style={styles.filters}>
-                {(["All", "Deposits", "Withdrawals", "Transfers"] as const).map(
-                  (item) => (
-                    <Pressable
-                      key={item}
+                {(
+                  [
+                    "All",
+                    "Deposits",
+                    "Withdrawals",
+                    "Transfers",
+                  ] as const
+                ).map((item) => (
+                  <Pressable
+                    key={item}
+                    style={[
+                      styles.filterButton,
+                      filter === item && styles.activeFilter,
+                    ]}
+                    onPress={() => setFilter(item)}
+                  >
+                    <Text
                       style={[
-                        styles.filterButton,
-                        filter === item && styles.activeFilter,
+                        styles.filterText,
+                        filter === item &&
+                          styles.activeFilterText,
                       ]}
-                      onPress={() => setFilter(item)}
                     >
-                      <Text
-                        style={[
-                          styles.filterText,
-                          filter === item && styles.activeFilterText,
-                        ]}
-                      >
-                        {item}
-                      </Text>
-                    </Pressable>
-                  )
-                )}
+                      {item}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
+
               {transactions.length > 0 ? summary : null}
             </View>
           }
@@ -285,9 +391,13 @@ export default function TransactionsScreen() {
                 size={32}
                 color={COLORS.placeholder}
               />
-              <Text style={styles.stateTitle}>No transactions yet</Text>
+              <Text style={styles.stateTitle}>
+                No transactions found
+              </Text>
               <Text style={styles.stateText}>
-                Make a deposit to get started. Your activity will show up here.
+                {transactions.length === 0
+                  ? "Make a deposit to get started."
+                  : "No transactions match this filter."}
               </Text>
             </View>
           }
@@ -313,7 +423,20 @@ const styles = StyleSheet.create({
     marginTop: 60,
   },
 
-  // HEADER
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    alignSelf: "flex-start",
+    marginBottom: 24,
+  },
+
+  backText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.text,
+  },
+
   title: {
     fontSize: 26,
     fontWeight: "700",
@@ -328,7 +451,36 @@ const styles = StyleSheet.create({
     marginBottom: 22,
   },
 
-  // SUMMARY
+  filters: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 20,
+  },
+
+  filterButton: {
+    flex: 1,
+    paddingVertical: 11,
+    paddingHorizontal: 3,
+    borderRadius: 10,
+    backgroundColor: COLORS.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  activeFilter: {
+    backgroundColor: COLORS.primary,
+  },
+
+  filterText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: COLORS.secondaryText,
+  },
+
+  activeFilterText: {
+    color: "#FFFFFF",
+  },
+
   summaryRow: {
     flexDirection: "row",
     gap: 12,
@@ -366,7 +518,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
 
-  // GROUPS
   group: {
     marginBottom: 24,
   },
@@ -418,9 +569,21 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
 
+  counterparty: {
+    fontSize: 12,
+    color: COLORS.secondaryText,
+    marginBottom: 3,
+  },
+
   date: {
     fontSize: 12,
     color: COLORS.secondaryText,
+  },
+
+  amountContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
 
   amount: {
@@ -433,7 +596,6 @@ const styles = StyleSheet.create({
     color: COLORS.success,
   },
 
-  // EMPTY / ERROR
   stateWrap: {
     alignItems: "center",
     paddingHorizontal: 32,
@@ -453,47 +615,5 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryText,
     textAlign: "center",
     lineHeight: 20,
-  },
-    filters: {
-    flexDirection: "row",
-    gap: 6,
-    marginBottom: 20,
-  },
-
-  filterButton: {
-    flex: 1,
-    paddingVertical: 11,
-    paddingHorizontal: 3,
-    borderRadius: 10,
-    backgroundColor: COLORS.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  activeFilter: {
-    backgroundColor: COLORS.primary,
-  },
-
-  filterText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: COLORS.secondaryText,
-  },
-
-  activeFilterText: {
-      color: "#FFFFFF",
-    },
-    backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    alignSelf: "flex-start",
-    marginBottom: 24,
-  },
-
-  backText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.text,
   },
 });
