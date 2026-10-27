@@ -73,7 +73,7 @@ export default function DashboardScreen() {
         try {
           const data = await getTransactions();
           if (active) {
-            setTransactions(data.slice(0, 5));
+            setTransactions(data.slice(0, 3));
             setTransactionsError(false);
           }
         } catch (err) {
