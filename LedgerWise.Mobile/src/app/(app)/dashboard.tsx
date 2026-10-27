@@ -1,5 +1,6 @@
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import {
   View,
   Text,
@@ -43,69 +44,72 @@ export default function DashboardScreen() {
     .charAt(0)
     .toUpperCase();
 
-  // Fetch wallet balance
-  useEffect(() => {
-    let active = true;
+  useFocusEffect(
+      useCallback(() => {
+        let active = true;
 
-    async function loadWallet() {
-      try {
-        const data = await getWallet();
+        async function loadWallet() {
+          try {
+            const data = await getWallet();
 
-        if (active) {
-          setWallet(data);
-          setError(null);
+            if (active) {
+              setWallet(data);
+              setError(null);
+            }
+          } catch (err) {
+            console.error("Failed to load wallet:", err);
+
+            if (active) {
+              setError("Unable to load wallet balance.");
+            }
+          } finally {
+            if (active) {
+              setIsLoading(false);
+            }
+          }
         }
-      } catch (err) {
-        console.error("Failed to load wallet:", err);
 
-        if (active) {
-          setError("Unable to load wallet balance.");
-        }
-      } finally {
-        if (active) {
-          setIsLoading(false);
-        }
-      }
-    }
+        loadWallet();
 
-    loadWallet();
-
-    return () => {
-      active = false;
-    };
-  }, []);
+        return () => {
+          active = false;
+        };
+      }, [])
+    );
 
   // Fetch recent transactions
-  useEffect(() => {
-    let active = true;
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
 
-    async function loadRecentTransactions() {
-      try {
-        const data = await getTransactions();
+      async function loadRecentTransactions() {
+        try {
+          const data = await getTransactions();
 
-        if (active) {
-          setTransactions(data.slice(0, 5));
-          setTransactionsError(false);
-        }
-      } catch (err) {
-        console.error("Failed to load transactions:", err);
+          if (active) {
+            setTransactions(data.slice(0, 5));
+            setTransactionsError(false);
+          }
+        } catch (err) {
+          console.error("Failed to load transactions:", err);
 
-        if (active) {
-          setTransactionsError(true);
-        }
-      } finally {
-        if (active) {
-          setTransactionsLoading(false);
+          if (active) {
+            setTransactionsError(true);
+          }
+        } finally {
+          if (active) {
+            setTransactionsLoading(false);
+          }
         }
       }
-    }
 
-    loadRecentTransactions();
+      loadRecentTransactions();
 
-    return () => {
-      active = false;
-    };
-  }, []);
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   // Sign out
   async function handleLogout() {
@@ -198,6 +202,15 @@ export default function DashboardScreen() {
             </Text>
           </View>
         </View>
+
+        <Pressable
+          style={styles.depositButton}
+          onPress={()=> router.push("/deposit")}
+        >
+          <Text style={styles.depositButton}>
+            + Deposit Money
+          </Text>
+        </Pressable>
 
         {/* RECENT TRANSACTIONS HEADER */}
         <View style={styles.sectionHeader}>
@@ -664,5 +677,20 @@ const styles = StyleSheet.create({
   logoutArrow: {
     color: COLORS.error,
     fontSize: 19,
+  },
+  depositButton: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    marginBottom: 30,
+  },
+
+  depositButtonText: {
+    color: COLORS.primary,
+    fontSize: 15,
+    fontWeight: "700",
   },
 });

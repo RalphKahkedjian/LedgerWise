@@ -34,6 +34,7 @@ export default function AppLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="dashboard" />
       <Stack.Screen name="transactions" />
+      <Stack.Screen name="deposit" options={{headerShown: false}} />
     </Stack>
   );
 }
