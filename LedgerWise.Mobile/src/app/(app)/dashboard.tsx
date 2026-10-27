@@ -202,15 +202,27 @@ export default function DashboardScreen() {
             </Text>
           </View>
         </View>
+        
 
-        <Pressable
-          style={styles.depositButton}
-          onPress={()=> router.push("/deposit")}
-        >
-          <Text style={styles.depositButton}>
-            + Deposit Money
-          </Text>
-        </Pressable>
+        {/* WALLET ACTIONS */}
+        <View style={styles.walletActions}>
+          <Pressable
+            style={styles.actionButton}
+            onPress={() => router.push("/deposit")}
+          >
+            <Text style={styles.actionIcon}>↓</Text>
+            <Text style={styles.actionText}>Deposit</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.actionButton}
+            onPress={() => router.push("/withdraw")}
+          >
+            <Text style={styles.actionIcon}>↑</Text>
+            <Text style={styles.actionText}>Withdraw</Text>
+          </Pressable>
+        </View>
+
 
         {/* RECENT TRANSACTIONS HEADER */}
         <View style={styles.sectionHeader}>
@@ -692,5 +704,48 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: 15,
     fontWeight: "700",
+  },
+  withdrawButton: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    marginBottom: 30,
+  },
+
+  withdrawButtonText: {
+    color: COLORS.primary,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  
+  walletActions: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 25,
+  },
+
+  actionButton: {
+    width: 80,
+    height: 80,
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+
+  actionIcon: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+
+  actionText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#FFFFFF",
   },
 });
