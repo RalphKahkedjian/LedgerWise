@@ -1,6 +1,5 @@
-
 import { useCallback, useState } from "react";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, router } from "expo-router";
 import {
   View,
   Text,
@@ -11,8 +10,8 @@ import {
   ScrollView,
   Modal,
 } from "react-native";
-import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -30,54 +29,42 @@ export default function DashboardScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [transactions, setTransactions] = useState<
-    WalletTransaction[]
-  >([]);
-  const [transactionsLoading, setTransactionsLoading] =
-    useState(true);
-  const [transactionsError, setTransactionsError] =
-    useState(false);
+  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(true);
+  const [transactionsError, setTransactionsError] = useState(false);
 
   const [profileVisible, setProfileVisible] = useState(false);
 
-  const avatarInitial = (user?.name || "U")
-    .charAt(0)
-    .toUpperCase();
+  const avatarInitial = (user?.name || "U").charAt(0).toUpperCase();
 
+  // Load wallet balance
   useFocusEffect(
-      useCallback(() => {
-        let active = true;
+    useCallback(() => {
+      let active = true;
 
-        async function loadWallet() {
-          try {
-            const data = await getWallet();
-
-            if (active) {
-              setWallet(data);
-              setError(null);
-            }
-          } catch (err) {
-            console.error("Failed to load wallet:", err);
-
-            if (active) {
-              setError("Unable to load wallet balance.");
-            }
-          } finally {
-            if (active) {
-              setIsLoading(false);
-            }
+      async function loadWallet() {
+        try {
+          const data = await getWallet();
+          if (active) {
+            setWallet(data);
+            setError(null);
           }
+        } catch (err) {
+          console.error("Failed to load wallet:", err);
+          if (active) setError("Unable to load your balance.");
+        } finally {
+          if (active) setIsLoading(false);
         }
+      }
 
-        loadWallet();
+      loadWallet();
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
-        return () => {
-          active = false;
-        };
-      }, [])
-    );
-
-  // Fetch recent transactions
+  // Load recent transactions
   useFocusEffect(
     useCallback(() => {
       let active = true;
@@ -85,33 +72,25 @@ export default function DashboardScreen() {
       async function loadRecentTransactions() {
         try {
           const data = await getTransactions();
-
           if (active) {
             setTransactions(data.slice(0, 5));
             setTransactionsError(false);
           }
         } catch (err) {
           console.error("Failed to load transactions:", err);
-
-          if (active) {
-            setTransactionsError(true);
-          }
+          if (active) setTransactionsError(true);
         } finally {
-          if (active) {
-            setTransactionsLoading(false);
-          }
+          if (active) setTransactionsLoading(false);
         }
       }
 
       loadRecentTransactions();
-
       return () => {
         active = false;
       };
     }, [])
   );
 
-  // Sign out
   async function handleLogout() {
     try {
       await signOut();
@@ -119,15 +98,10 @@ export default function DashboardScreen() {
       router.replace("/login");
     } catch (err) {
       console.error("Logout failed:", err);
-
-      Alert.alert(
-        "Logout failed",
-        "Unable to sign out. Please try again."
-      );
+      Alert.alert("Logout failed", "Unable to sign out. Please try again.");
     }
   }
 
-  // Format money
   function formatMoney(amount: number) {
     return amount.toLocaleString("en-US", {
       style: "currency",
@@ -135,10 +109,12 @@ export default function DashboardScreen() {
     });
   }
 
-  // Determine transaction direction
   function isIncoming(type: string) {
     return type === "Deposit" || type === "Transfer In";
   }
+
+  // Split "$1,234.56" into "$1,234" and ".56" so the cents can be set smaller
+  const [balanceWhole, balanceCents] = formatMoney(wallet?.balance ?? 0).split(".");
 
   return (
     <SafeAreaView style={styles.container}>
@@ -149,93 +125,126 @@ export default function DashboardScreen() {
         {/* HEADER */}
         <View style={styles.header}>
           <View style={styles.headerInfo}>
-            <Text style={styles.greeting}>
-              Welcome back,
-            </Text>
-
-            <Text style={styles.userName}>
+            <Text style={styles.greeting}>Welcome back</Text>
+            <Text style={styles.userName} numberOfLines={1}>
               {user?.name || "User"}
             </Text>
           </View>
 
           <Pressable
-            style={styles.profileAvatar}
+            style={({ pressed }) => [
+              styles.profileAvatar,
+              pressed && styles.pressed,
+            ]}
             onPress={() => setProfileVisible(true)}
             accessibilityRole="button"
             accessibilityLabel="Open profile menu"
           >
-            <Text style={styles.avatarText}>
-              {avatarInitial}
-            </Text>
+            <Text style={styles.avatarText}>{avatarInitial}</Text>
           </Pressable>
         </View>
 
         {/* WALLET CARD */}
         <View style={styles.walletCard}>
-          <Text style={styles.walletLabel}>
-            TOTAL WALLET BALANCE
-          </Text>
+          {/* Decorative glows */}
+          <View style={styles.glowLarge} />
+          <View style={styles.glowSmall} />
 
-          {isLoading ? (
-            <ActivityIndicator
-              size="large"
-              color={COLORS.surface}
-              style={styles.walletLoader}
-            />
-          ) : error ? (
-            <Text style={styles.walletError}>
-              {error}
-            </Text>
-          ) : (
-            <Text style={styles.balance}>
-              {formatMoney(wallet?.balance ?? 0)}
-            </Text>
-          )}
+          <View style={styles.walletTop}>
+            <View style={styles.walletBrand}>
+              <View style={styles.brandIcon}>
+                <Ionicons name="wallet-outline" size={16} color="#FFFFFF" />
+              </View>
+              <Text style={styles.walletBrandText}>LedgerWise Wallet</Text>
+            </View>
 
-          <View style={styles.walletFooter}>
-            <Text style={styles.walletFooterText}>
-              LedgerWise Wallet
-            </Text>
+            <View style={styles.currencyPill}>
+              <Text style={styles.currencyText}>USD</Text>
+            </View>
+          </View>
 
-            <Text style={styles.walletFooterText}>
-              USD
-            </Text>
+          <View style={styles.balanceBlock}>
+            <Text style={styles.walletLabel}>Total balance</Text>
+
+            {isLoading ? (
+              <View style={styles.balanceLoader}>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              </View>
+            ) : error ? (
+              <Text style={styles.walletError}>{error}</Text>
+            ) : (
+              <View style={styles.balanceRow}>
+                <Text style={styles.balanceWhole} adjustsFontSizeToFit numberOfLines={1}>
+                  {balanceWhole}
+                </Text>
+                {balanceCents ? (
+                  <Text style={styles.balanceCents}>.{balanceCents}</Text>
+                ) : null}
+              </View>
+            )}
           </View>
         </View>
-        
 
-        {/* WALLET ACTIONS */}
-        <View style={styles.walletActions}>
+        {/* QUICK ACTIONS */}
+        <View style={styles.quickActions}>
           <Pressable
-            style={styles.actionButton}
+            style={({ pressed }) => [
+              styles.quickAction,
+              pressed && styles.pressed,
+            ]}
             onPress={() => router.push("/deposit")}
+            accessibilityRole="button"
+            accessibilityLabel="Deposit money"
           >
-            <Text style={styles.actionIcon}>↓</Text>
-            <Text style={styles.actionText}>Deposit</Text>
+            <View style={styles.quickActionIcon}>
+              <Ionicons name="arrow-down" size={18} color={COLORS.primary} />
+            </View>
+            <Text style={styles.quickActionText}>Deposit</Text>
           </Pressable>
 
           <Pressable
-            style={styles.actionButton}
+            style={({ pressed }) => [
+              styles.quickAction,
+              pressed && styles.pressed,
+            ]}
             onPress={() => router.push("/withdraw")}
+            accessibilityRole="button"
+            accessibilityLabel="Withdraw money"
           >
-            <Text style={styles.actionIcon}>↑</Text>
-            <Text style={styles.actionText}>Withdraw</Text>
+            <View style={styles.quickActionIcon}>
+              <Ionicons name="arrow-up" size={18} color={COLORS.primary} />
+            </View>
+            <Text style={styles.quickActionText}>Withdraw</Text>
           </Pressable>
-        </View>
 
+          <Pressable
+            style={({ pressed }) => [
+              styles.quickAction,
+              pressed && styles.pressed,
+            ]}
+            onPress={() => router.push("/transfer")}
+            accessibilityRole="button"
+            accessibilityLabel="Transfer money"
+          >
+            <View style={styles.quickActionIcon}>
+              <Ionicons name="swap-horizontal" size={18} color={COLORS.primary} />
+            </View>
+            <Text style={styles.quickActionText}>Transfer</Text>
+          </Pressable>
+
+        </View>
 
         {/* RECENT TRANSACTIONS HEADER */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            Recent Transactions
-          </Text>
+          <Text style={styles.sectionTitle}>Recent transactions</Text>
 
           <Pressable
             onPress={() => router.push("/transactions")}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="See all transactions"
           >
-            <Text style={styles.seeAll}>
-              See all
-            </Text>
+            <Text style={styles.seeAll}>See all</Text>
           </Pressable>
         </View>
 
@@ -248,19 +257,27 @@ export default function DashboardScreen() {
           />
         ) : transactionsError ? (
           <View style={styles.emptyCard}>
+            <Ionicons
+              name="cloud-offline-outline"
+              size={28}
+              color={COLORS.placeholder}
+              style={styles.emptyIcon}
+            />
             <Text style={styles.emptyText}>
-              Unable to load transactions.
+              Unable to load transactions. Pull back to this screen to try again.
             </Text>
           </View>
         ) : transactions.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>
-              No transactions yet
-            </Text>
-
+            <Ionicons
+              name="receipt-outline"
+              size={28}
+              color={COLORS.placeholder}
+              style={styles.emptyIcon}
+            />
+            <Text style={styles.emptyTitle}>No transactions yet</Text>
             <Text style={styles.emptyText}>
-              Your deposits, withdrawals, and transfers
-              will appear here.
+              Make a deposit to get started. Your activity will show up here.
             </Text>
           </View>
         ) : (
@@ -273,47 +290,29 @@ export default function DashboardScreen() {
                   key={transaction.id}
                   style={[
                     styles.transactionRow,
-                    index < transactions.length - 1 &&
-                      styles.transactionBorder,
+                    index < transactions.length - 1 && styles.transactionBorder,
                   ]}
                 >
                   <View
                     style={[
                       styles.transactionIcon,
-                      {
-                        backgroundColor: incoming
-                          ? "#DCFCE7"
-                          : "#FEE2E2",
-                      },
+                      { backgroundColor: incoming ? "#DCFCE7" : "#FEE2E2" },
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.transactionArrow,
-                        {
-                          color: incoming
-                            ? COLORS.success
-                            : COLORS.error,
-                        },
-                      ]}
-                    >
-                      {incoming ? "↓" : "↑"}
-                    </Text>
+                    <Ionicons
+                      name={incoming ? "arrow-down" : "arrow-up"}
+                      size={18}
+                      color={incoming ? COLORS.success : COLORS.error}
+                    />
                   </View>
 
                   <View style={styles.transactionDetails}>
-                    <Text style={styles.transactionType}>
-                      {transaction.type}
-                    </Text>
-
+                    <Text style={styles.transactionType}>{transaction.type}</Text>
                     <Text style={styles.transactionDate}>
-                      {new Date(
-                        transaction.createdAt
-                      ).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
+                      {new Date(transaction.createdAt).toLocaleDateString(
+                        "en-US",
+                        { month: "short", day: "numeric", year: "numeric" }
+                      )}
                     </Text>
                   </View>
 
@@ -323,10 +322,8 @@ export default function DashboardScreen() {
                       incoming && styles.incomingAmount,
                     ]}
                   >
-                    {incoming ? "+" : "-"}
-                    {formatMoney(
-                      Math.abs(transaction.amount)
-                    )}
+                    {incoming ? "+" : "−"}
+                    {formatMoney(Math.abs(transaction.amount))}
                   </Text>
                 </View>
               );
@@ -353,20 +350,12 @@ export default function DashboardScreen() {
           >
             <View style={styles.menuHeader}>
               <View style={styles.menuAvatar}>
-                <Text style={styles.menuAvatarText}>
-                  {avatarInitial}
-                </Text>
+                <Text style={styles.menuAvatarText}>{avatarInitial}</Text>
               </View>
 
               <View style={styles.menuUserInfo}>
-                <Text style={styles.menuName}>
-                  {user?.name || "User"}
-                </Text>
-
-                <Text
-                  style={styles.menuEmail}
-                  numberOfLines={1}
-                >
+                <Text style={styles.menuName}>{user?.name || "User"}</Text>
+                <Text style={styles.menuEmail} numberOfLines={1}>
                   {user?.email || ""}
                 </Text>
               </View>
@@ -380,13 +369,8 @@ export default function DashboardScreen() {
               accessibilityRole="button"
               accessibilityLabel="Sign out"
             >
-              <Text style={styles.menuLogoutText}>
-                Sign Out
-              </Text>
-
-              <Text style={styles.logoutArrow}>
-                →
-              </Text>
+              <Text style={styles.menuLogoutText}>Sign out</Text>
+              <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
             </Pressable>
           </Pressable>
         </Pressable>
@@ -402,9 +386,14 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingTop: 16,
     paddingBottom: 40,
+  },
+
+  pressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
   },
 
   // HEADER
@@ -412,7 +401,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 28,
+    marginBottom: 24,
   },
 
   headerInfo: {
@@ -421,76 +410,193 @@ const styles = StyleSheet.create({
   },
 
   greeting: {
-    fontSize: 13,
+    fontSize: 14,
     color: COLORS.secondaryText,
-    marginBottom: 6,
+    marginBottom: 2,
   },
 
   userName: {
-    fontSize: 23,
+    fontSize: 24,
     fontWeight: "700",
     color: COLORS.text,
+    letterSpacing: -0.3,
   },
 
   profileAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
     justifyContent: "center",
     alignItems: "center",
   },
 
   avatarText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
-    color: COLORS.surface,
+    color: COLORS.primary,
   },
 
-  // WALLET
+  // WALLET CARD
   walletCard: {
+    backgroundColor: COLORS.text, // deep navy
+    borderRadius: 28,
+    padding: 22,
+    overflow: "hidden",
+    marginBottom: 16,
+    shadowColor: COLORS.text,
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 10,
+  },
+
+  glowLarge: {
+    position: "absolute",
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    top: -110,
+    right: -80,
     backgroundColor: COLORS.primary,
-    borderRadius: 22,
-    padding: 25,
-    minHeight: 190,
-    justifyContent: "space-between",
-    marginBottom: 30,
+    opacity: 0.55,
   },
 
-  walletLabel: {
-    fontSize: 12,
-    color: "#DBEAFE",
-    letterSpacing: 1,
-    fontWeight: "600",
+  glowSmall: {
+    position: "absolute",
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    bottom: -70,
+    left: -50,
+    backgroundColor: COLORS.primary,
+    opacity: 0.18,
   },
 
-  walletLoader: {
-    marginVertical: 25,
-  },
-
-  walletError: {
-    fontSize: 14,
-    color: COLORS.surface,
-    marginVertical: 25,
-  },
-
-  balance: {
-    fontSize: 36,
-    fontWeight: "700",
-    color: COLORS.surface,
-    marginVertical: 22,
-  },
-
-  walletFooter: {
+  walletTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
 
-  walletFooterText: {
-    fontSize: 12,
-    color: "#DBEAFE",
+  walletBrand: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  brandIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  walletBrandText: {
+    fontSize: 14,
     fontWeight: "600",
+    color: "#FFFFFF",
+  },
+
+  currencyPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
+
+  currencyText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.5,
+  },
+
+  balanceBlock: {
+    marginTop: 34,
+    marginBottom: 6,
+  },
+
+  walletLabel: {
+    fontSize: 14,
+    color: "#BFD3FB",
+    marginBottom: 6,
+  },
+
+  balanceLoader: {
+    height: 56,
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+
+  walletError: {
+    fontSize: 14,
+    color: "#FFFFFF",
+    height: 56,
+    textAlignVertical: "center",
+    lineHeight: 56,
+  },
+
+  balanceRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    height: 56,
+  },
+
+  balanceWhole: {
+    fontSize: 46,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: -1.5,
+    flexShrink: 1,
+  },
+
+  balanceCents: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#BFD3FB",
+    marginLeft: 2,
+  },
+
+  // QUICK ACTIONS (below the card). Fixed-size squares, left-aligned, so
+  // adding a Transfer button later just continues the row.
+  quickActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    gap: 12,
+    marginBottom: 32,
+  },
+
+  quickAction: {
+    width: 84,
+    height: 84,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+
+  quickActionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  quickActionText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.text,
   },
 
   // TRANSACTIONS
@@ -498,7 +604,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 14,
   },
 
   sectionTitle: {
@@ -508,8 +614,8 @@ const styles = StyleSheet.create({
   },
 
   seeAll: {
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "600",
     color: COLORS.primary,
   },
 
@@ -519,7 +625,7 @@ const styles = StyleSheet.create({
 
   emptyCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 30,
     alignItems: "center",
     borderWidth: 1,
@@ -527,7 +633,6 @@ const styles = StyleSheet.create({
   },
 
   emptyIcon: {
-    fontSize: 32,
     marginBottom: 12,
   },
 
@@ -535,11 +640,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: COLORS.text,
-    marginBottom: 8,
+    marginBottom: 6,
   },
 
   emptyText: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.secondaryText,
     textAlign: "center",
     lineHeight: 20,
@@ -547,7 +652,7 @@ const styles = StyleSheet.create({
 
   transactionList: {
     backgroundColor: COLORS.surface,
-    borderRadius: 18,
+    borderRadius: 20,
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -556,7 +661,7 @@ const styles = StyleSheet.create({
   transactionRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
+    paddingVertical: 14,
   },
 
   transactionBorder: {
@@ -565,17 +670,12 @@ const styles = StyleSheet.create({
   },
 
   transactionIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 13,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
-  },
-
-  transactionArrow: {
-    fontSize: 22,
-    fontWeight: "700",
   },
 
   transactionDetails: {
@@ -583,19 +683,19 @@ const styles = StyleSheet.create({
   },
 
   transactionType: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
     color: COLORS.text,
-    marginBottom: 5,
+    marginBottom: 3,
   },
 
   transactionDate: {
-    fontSize: 11,
+    fontSize: 12,
     color: COLORS.secondaryText,
   },
 
   transactionAmount: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: "700",
     color: COLORS.text,
   },
@@ -607,7 +707,7 @@ const styles = StyleSheet.create({
   // PROFILE POPUP
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.25)",
+    backgroundColor: "rgba(20,35,64,0.35)",
     justifyContent: "flex-start",
     alignItems: "flex-end",
     paddingTop: 105,
@@ -618,15 +718,12 @@ const styles = StyleSheet.create({
     width: 285,
     maxWidth: "100%",
     backgroundColor: COLORS.surface,
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 18,
     shadowColor: "#000",
     shadowOpacity: 0.12,
     shadowRadius: 18,
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
+    shadowOffset: { width: 0, height: 6 },
     elevation: 8,
   },
 
@@ -637,8 +734,8 @@ const styles = StyleSheet.create({
   },
 
   menuAvatar: {
-    width: 43,
-    height: 43,
+    width: 44,
+    height: 44,
     borderRadius: 22,
     backgroundColor: "#EFF6FF",
     justifyContent: "center",
@@ -657,20 +754,20 @@ const styles = StyleSheet.create({
 
   menuName: {
     color: COLORS.text,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
-    marginBottom: 4,
+    marginBottom: 3,
   },
 
   menuEmail: {
     color: COLORS.secondaryText,
-    fontSize: 11,
+    fontSize: 12,
   },
 
   menuDivider: {
     height: 1,
     backgroundColor: COLORS.border,
-    marginVertical: 15,
+    marginVertical: 14,
   },
 
   menuLogout: {
@@ -682,70 +779,7 @@ const styles = StyleSheet.create({
 
   menuLogoutText: {
     color: COLORS.error,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
-  },
-
-  logoutArrow: {
-    color: COLORS.error,
-    fontSize: 19,
-  },
-  depositButton: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    marginBottom: 30,
-  },
-
-  depositButtonText: {
-    color: COLORS.primary,
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  withdrawButton: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    marginBottom: 30,
-  },
-
-  withdrawButtonText: {
-    color: COLORS.primary,
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  
-  walletActions: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 25,
-  },
-
-  actionButton: {
-    width: 80,
-    height: 80,
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-  },
-
-  actionIcon: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-
-  actionText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#FFFFFF",
   },
 });
