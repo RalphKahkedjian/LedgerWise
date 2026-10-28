@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { router } from "expo-router";
 import {
@@ -11,11 +10,14 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
+  type TextInputProps,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
 
 import { register } from "@/services/auth";
-
-import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS } from "../../constants/colors";
 
 import {
@@ -26,12 +28,53 @@ import {
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
 
+type FieldProps = TextInputProps & {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  rightElement?: React.ReactNode;
+  hint?: string;
+};
+
+// Labeled input with a leading icon and a highlighted border on focus
+function Field({ label, icon, rightElement, hint, ...inputProps }: FieldProps) {
+  const [focused, setFocused] = useState(false);
+
+  return (
+    <View style={styles.fieldWrap}>
+      <Text style={styles.label}>{label}</Text>
+
+      <View style={[styles.field, focused && styles.fieldFocused]}>
+        <Ionicons
+          name={icon}
+          size={20}
+          color={focused ? COLORS.primary : COLORS.placeholder}
+        />
+
+        <TextInput
+          {...inputProps}
+          style={styles.fieldInput}
+          placeholderTextColor={COLORS.placeholder}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+        />
+
+        {rightElement}
+      </View>
+
+      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+    </View>
+  );
+}
+
 export default function RegisterScreen() {
+  const insets = useSafeAreaInsets();
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [fontsLoaded] = useFonts({
     Montserrat_400Regular,
@@ -41,111 +84,120 @@ export default function RegisterScreen() {
   });
 
   async function handleRegister() {
-  if (
-    !fullName.trim() ||
-    !email.trim() ||
-    !password ||
-    !confirmPassword
-  ) {
-    Alert.alert("Missing information", "Please fill in all fields.");
-    return;
+    if (!fullName.trim() || !email.trim() || !password || !confirmPassword) {
+      Alert.alert("Missing information", "Please fill in all fields.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Password mismatch", "Your passwords do not match.");
+      return;
+    }
+
+    if (password.length < 8) {
+      Alert.alert("Weak password", "Password must be at least 8 characters.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      await register({
+        name: fullName.trim(),
+        email: email.trim(),
+        password: password,
+      });
+
+      Alert.alert(
+        "Account created",
+        "Your LedgerWise account was created successfully.",
+        [
+          {
+            text: "Sign In",
+            onPress: () => router.replace("/login"),
+          },
+        ]
+      );
+    } catch (error) {
+      console.error("Registration failed:", error);
+
+      Alert.alert(
+        "Registration failed",
+        "Unable to create your account. The email may already be registered."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
-
-  if (password !== confirmPassword) {
-    Alert.alert("Password mismatch", "Your passwords do not match.");
-    return;
-  }
-
-  if (password.length < 8) {
-    Alert.alert("Weak password", "Password must be at least 8 characters.");
-    return;
-  }
-
-  try {
-    await register({
-      name: fullName.trim(),
-      email: email.trim(),
-      password: password,
-    });
-
-    Alert.alert(
-      "Account created",
-      "Your LedgerWise account was created successfully.",
-      [
-        {
-          text: "Sign In",
-          onPress: () => router.replace("/login"),
-        },
-      ]
-    );
-  } catch (error) {
-    console.error("Registration failed:", error);
-
-    Alert.alert(
-      "Registration failed",
-      "Unable to create your account. The email may already be registered."
-    );
-  }
-}
 
   if (!fontsLoaded) return null;
 
+  const eyeToggle = (
+    <Pressable
+      onPress={() => setShowPassword(!showPassword)}
+      hitSlop={10}
+      accessibilityRole="button"
+      accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+    >
+      <Ionicons
+        name={showPassword ? "eye-off-outline" : "eye-outline"}
+        size={20}
+        color={COLORS.secondaryText}
+      />
+    </Pressable>
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar style="light" />
+
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: insets.bottom + 28 }}
         >
-          <View style={styles.content}>
+          {/* HERO (more compact than login, since the form is longer) */}
+          <View style={[styles.hero, { paddingTop: insets.top + 24 }]}>
+            <View style={styles.glowLarge} />
+            <View style={styles.glowSmall} />
 
-            {/* Branding */}
-            <View style={styles.brandSection}>
+            <View style={styles.brandRow}>
               <View style={styles.logo}>
                 <Text style={styles.logoText}>LW</Text>
               </View>
 
-              <Text style={styles.brandName}>
-                LedgerWise
-              </Text>
-
-              <Text style={styles.tagline}>
-                Finance, refined.
-              </Text>
+              <View>
+                <Text style={styles.brandName}>LedgerWise</Text>
+                <Text style={styles.tagline}>Finance, refined.</Text>
+              </View>
             </View>
+          </View>
 
-            {/* Heading */}
-            <Text style={styles.title}>
-              Create account
-            </Text>
-
+          {/* FORM */}
+          <View style={styles.content}>
+            <Text style={styles.title}>Create account</Text>
             <Text style={styles.description}>
               Start your financial journey with LedgerWise.
             </Text>
 
-            {/* Full Name */}
-            <Text style={styles.label}>Full name</Text>
-
-            <TextInput
-              style={styles.input}
+            <Field
+              label="Full name"
+              icon="person-outline"
               placeholder="Enter your full name"
-              placeholderTextColor={COLORS.placeholder}
               autoCapitalize="words"
               autoComplete="name"
               value={fullName}
               onChangeText={setFullName}
             />
 
-            {/* Email */}
-            <Text style={styles.label}>Email address</Text>
-
-            <TextInput
-              style={styles.input}
+            <Field
+              label="Email address"
+              icon="mail-outline"
               placeholder="you@example.com"
-              placeholderTextColor={COLORS.placeholder}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -153,86 +205,58 @@ export default function RegisterScreen() {
               onChangeText={setEmail}
             />
 
-            {/* Password */}
-            <Text style={styles.label}>Password</Text>
+            <Field
+              label="Password"
+              icon="lock-closed-outline"
+              placeholder="Create a password"
+              hint="Use at least 8 characters."
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoComplete="new-password"
+              value={password}
+              onChangeText={setPassword}
+              rightElement={eyeToggle}
+            />
 
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Create a password"
-                placeholderTextColor={COLORS.placeholder}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoComplete="new-password"
-                value={password}
-                onChangeText={setPassword}
-              />
+            <Field
+              label="Confirm password"
+              icon="shield-checkmark-outline"
+              placeholder="Confirm your password"
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              rightElement={eyeToggle}
+            />
 
-              <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                hitSlop={10}
-              >
-                <Text style={styles.showPassword}>
-                  {showPassword ? "Hide" : "Show"}
-                </Text>
-              </Pressable>
-            </View>
-
-            {/* Confirm Password */}
-            <Text style={styles.label}>
-              Confirm password
-            </Text>
-
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Confirm your password"
-                placeholderTextColor={COLORS.placeholder}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-              />
-
-              <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                hitSlop={10}
-              >
-                <Text style={styles.showPassword}>
-                  {showPassword ? "Hide" : "Show"}
-                </Text>
-              </Pressable>
-            </View>
-
-            {/* Register Button */}
             <Pressable
-              style={styles.registerButton}
+              style={({ pressed }) => [
+                styles.primaryButton,
+                (pressed || isSubmitting) && styles.buttonPressed,
+              ]}
               onPress={handleRegister}
+              disabled={isSubmitting}
+              accessibilityRole="button"
+              accessibilityLabel="Create account"
             >
-              <Text style={styles.registerButtonText}>
-                Create Account
-              </Text>
+              {isSubmitting ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Create account</Text>
+              )}
             </Pressable>
 
-            {/* Login Navigation */}
             <View style={styles.footer}>
-              <Text style={styles.footerText}>
-                Already have an account?{" "}
-              </Text>
+              <Text style={styles.footerText}>Already have an account? </Text>
 
-              <Pressable
-                onPress={() => router.replace("/login")}
-              >
-                <Text style={styles.loginLink}>
-                  Sign In
-                </Text>
+              <Pressable hitSlop={8} onPress={() => router.replace("/login")}>
+                <Text style={styles.footerLink}>Sign in</Text>
               </Pressable>
             </View>
-
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -242,123 +266,159 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: "center",
-    paddingVertical: 30,
+  // HERO
+  hero: {
+    backgroundColor: COLORS.text,
+    borderBottomLeftRadius: 36,
+    borderBottomRightRadius: 36,
+    paddingBottom: 30,
+    paddingHorizontal: 24,
+    overflow: "hidden",
   },
 
-  content: {
-    paddingHorizontal: 28,
+  glowLarge: {
+    position: "absolute",
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    top: -120,
+    right: -80,
+    backgroundColor: COLORS.primary,
+    opacity: 0.55,
   },
 
-  brandSection: {
+  glowSmall: {
+    position: "absolute",
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    bottom: -80,
+    left: -50,
+    backgroundColor: COLORS.primary,
+    opacity: 0.2,
+  },
+
+  brandRow: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 35,
+    gap: 14,
   },
 
   logo: {
-    width: 68,
-    height: 68,
-    borderRadius: 20,
-    backgroundColor: COLORS.primary,
+    width: 54,
+    height: 54,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 18,
   },
 
   logoText: {
-    fontSize: 24,
-    color: COLORS.background,
+    fontSize: 20,
+    color: COLORS.primary,
     fontFamily: "Montserrat_700Bold",
   },
 
   brandName: {
-    fontSize: 29,
-    color: COLORS.primary,
+    fontSize: 24,
+    color: "#FFFFFF",
     fontFamily: "Montserrat_700Bold",
+    letterSpacing: -0.3,
   },
 
   tagline: {
     fontSize: 12,
-    color: COLORS.secondaryText,
-    marginTop: 7,
+    color: "#BFD3FB",
+    marginTop: 2,
     fontFamily: "Montserrat_400Regular",
+  },
+
+  // FORM
+  content: {
+    paddingHorizontal: 24,
+    paddingTop: 30,
   },
 
   title: {
-    fontSize: 25,
-    color: COLORS.primary,
+    fontSize: 26,
+    color: COLORS.text,
     fontFamily: "Montserrat_700Bold",
-    marginBottom: 9,
+    letterSpacing: -0.3,
+    marginBottom: 8,
   },
 
   description: {
-    fontSize: 12,
+    fontSize: 14,
     color: COLORS.secondaryText,
     fontFamily: "Montserrat_400Regular",
-    marginBottom: 28,
-    lineHeight: 20,
+    marginBottom: 26,
+    lineHeight: 21,
+  },
+
+  fieldWrap: {
+    marginBottom: 18,
   },
 
   label: {
-    fontSize: 12,
-    color: COLORS.text,
-    fontFamily: "Montserrat_600SemiBold",
-    marginBottom: 10,
-  },
-
-  input: {
-    height: 56,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 13,
-    paddingHorizontal: 16,
     fontSize: 13,
     color: COLORS.text,
-    fontFamily: "Montserrat_400Regular",
-    marginBottom: 20,
+    fontFamily: "Montserrat_600SemiBold",
+    marginBottom: 8,
   },
 
-  passwordContainer: {
+  field: {
     height: 56,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 13,
-    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    gap: 12,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 16,
   },
 
-  passwordInput: {
+  fieldFocused: {
+    borderColor: COLORS.primary,
+  },
+
+  fieldInput: {
     flex: 1,
     height: "100%",
-    fontSize: 13,
+    fontSize: 15,
     color: COLORS.text,
     fontFamily: "Montserrat_400Regular",
   },
 
-  showPassword: {
+  hint: {
     fontSize: 12,
-    color: COLORS.accent,
-    fontFamily: "Montserrat_600SemiBold",
+    color: COLORS.secondaryText,
+    fontFamily: "Montserrat_400Regular",
+    marginTop: 6,
+    marginLeft: 4,
   },
 
-  registerButton: {
+  primaryButton: {
     height: 56,
     backgroundColor: COLORS.primary,
-    borderRadius: 13,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 12,
+    marginTop: 10,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.3,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
   },
 
-  registerButtonText: {
-    fontSize: 14,
-    color: COLORS.surface,
+  buttonPressed: {
+    opacity: 0.85,
+  },
+
+  primaryButtonText: {
+    fontSize: 15,
+    color: "#FFFFFF",
     fontFamily: "Montserrat_700Bold",
   },
 
@@ -366,19 +426,19 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 30,
+    marginTop: 28,
     flexWrap: "wrap",
   },
 
   footerText: {
-    fontSize: 11,
+    fontSize: 13,
     color: COLORS.secondaryText,
     fontFamily: "Montserrat_400Regular",
   },
 
-  loginLink: {
-    fontSize: 11,
-    color: COLORS.accent,
+  footerLink: {
+    fontSize: 13,
+    color: COLORS.primary,
     fontFamily: "Montserrat_600SemiBold",
   },
 });

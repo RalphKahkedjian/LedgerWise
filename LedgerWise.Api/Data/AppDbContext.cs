@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Wallet> Wallets => Set<Wallet>();
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<PendingTransfer> PendingTransfers {get; set;}
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,5 +25,21 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(t => t.CounterpartyUserId)
             .OnDelete(DeleteBehavior.Restrict);
-    }
+        
+        modelBuilder.Entity<PendingTransfer>()
+            .HasOne(p => p.SenderUser)
+            .WithMany()
+            .HasForeignKey(p => p.SenderUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PendingTransfer>()
+            .HasOne(p => p.ReceiverUser)
+            .WithMany()
+            .HasForeignKey(p => p.ReceiverUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PendingTransfer>()
+            .Property(p => p.Amount)
+            .HasPrecision(18, 2);
+            }
 }

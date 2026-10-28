@@ -25,4 +25,22 @@ public interface IWalletService
 
     Task<ServiceResult<List<TransactionResponse>>> GetTransactionsAsync(
         ClaimsPrincipal user);
+
+    Task<ServiceResult<object>> AcceptTransferAsync(
+        ClaimsPrincipal user,
+        int transferId
+    );
+
+    Task<ServiceResult<object>> GetIncomingTransfersAsync(
+        ClaimsPrincipal user
+    );
+
+    Task<ServiceResult<object>> RejectTransferAsync(
+        ClaimsPrincipal user,
+        int transferId
+    );
+
+    Task<ServiceResult<object>> GetOutgoingTransfersAsync(
+        ClaimsPrincipal user
+    );
 }

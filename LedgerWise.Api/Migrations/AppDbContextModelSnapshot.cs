@@ -44,6 +44,43 @@ namespace LedgerWise.Api.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("LedgerWise.Api.Models.PendingTransfer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ReceiverUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("RespondedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SenderUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReceiverUserId");
+
+                    b.HasIndex("SenderUserId");
+
+                    b.ToTable("PendingTransfers");
+                });
+
             modelBuilder.Entity("LedgerWise.Api.Models.Transaction", b =>
                 {
                     b.Property<int>("Id")
@@ -137,6 +174,25 @@ namespace LedgerWise.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("user");
+                });
+
+            modelBuilder.Entity("LedgerWise.Api.Models.PendingTransfer", b =>
+                {
+                    b.HasOne("LedgerWise.Api.Models.User", "ReceiverUser")
+                        .WithMany()
+                        .HasForeignKey("ReceiverUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LedgerWise.Api.Models.User", "SenderUser")
+                        .WithMany()
+                        .HasForeignKey("SenderUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ReceiverUser");
+
+                    b.Navigation("SenderUser");
                 });
 
             modelBuilder.Entity("LedgerWise.Api.Models.Transaction", b =>

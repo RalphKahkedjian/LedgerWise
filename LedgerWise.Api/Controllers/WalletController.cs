@@ -77,4 +77,49 @@ public async Task<IActionResult> Deposit(AmountRequest request)
 
     return Ok(result.Data);
   }
+
+  [HttpPost("transfers/{transferId:int}/accept")]
+  public async Task<IActionResult> AcceptTransfer(int transferId)
+  {
+    var result = await _walletService.AcceptTransferAsync(User, transferId);
+    if (!result.Success)
+      return BadRequest(result.Message);
+
+    return Ok(result.Data);
+  }
+
+  [HttpGet("transfers/incoming")]
+  public async Task<IActionResult> GetIncomingTransfers()
+  {
+    var result = await _walletService.GetIncomingTransfersAsync(User);
+
+    if (!result.Success)
+      return BadRequest(result.Message);
+
+    return Ok(result.Data);
+  }
+
+  [HttpPost("transfers/{transferId:int}/reject")]
+  public async Task<IActionResult> RejectTransfer(int transferId)
+  {
+      var result = await _walletService.RejectTransferAsync(
+          User, transferId);
+
+      if (!result.Success)
+          return BadRequest(result.Message);
+
+      return Ok(result.Data);
+  }
+
+  [HttpGet("transfers/outgoing")]
+  public async Task<IActionResult> GetOutgoingTransfers()
+  {
+      var result =
+          await _walletService.GetOutgoingTransfersAsync(User);
+
+      if (!result.Success)
+          return BadRequest(result.Message);
+
+      return Ok(result.Data);
+  }
 }
