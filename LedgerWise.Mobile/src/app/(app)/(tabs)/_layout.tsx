@@ -1,25 +1,61 @@
 import { Tabs } from "expo-router";
+import { View, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../../../constants/colors";
 
+type IconName = keyof typeof Ionicons.glyphMap;
+
+// Icon with a soft pill behind it when the tab is active
+function TabIcon({
+  focused,
+  active,
+  inactive,
+}: {
+  focused: boolean;
+  active: IconName;
+  inactive: IconName;
+}) {
+  return (
+    <View style={[styles.iconPill, focused && styles.iconPillActive]}>
+      <Ionicons
+        name={focused ? active : inactive}
+        size={22}
+        color={focused ? COLORS.primary : COLORS.placeholder}
+      />
+    </View>
+  );
+}
+
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, 10);
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: COLORS.secondaryText,
+        tabBarInactiveTintColor: COLORS.placeholder,
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
           backgroundColor: COLORS.surface,
-          borderTopColor: COLORS.border,
-          height: 70,
-          paddingTop: 6,
-          paddingBottom: 10,
-          borderTopLeftRadius: 10
+          borderTopWidth: 0,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          height: 50 + bottomPadding,
+          paddingTop: 8,
+          paddingBottom: bottomPadding,
+          shadowColor: COLORS.text,
+          shadowOpacity: 0.08,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: -4 },
+          elevation: 16,
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: "500",
+          fontWeight: "600",
+          marginTop: 2,
         },
       }}
     >
@@ -27,8 +63,8 @@ export default function TabsLayout() {
         name="dashboard"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} active="home" inactive="home-outline" />
           ),
         }}
       />
@@ -37,8 +73,12 @@ export default function TabsLayout() {
         name="transactions"
         options={{
           title: "Activity",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="receipt-outline" size={size} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              focused={focused}
+              active="receipt"
+              inactive="receipt-outline"
+            />
           ),
         }}
       />
@@ -47,8 +87,12 @@ export default function TabsLayout() {
         name="pay"
         options={{
           title: "Pay",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="qr-code-outline" size={size} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              focused={focused}
+              active="qr-code"
+              inactive="qr-code-outline"
+            />
           ),
         }}
       />
@@ -57,11 +101,29 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              focused={focused}
+              active="person"
+              inactive="person-outline"
+            />
           ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  iconPill: {
+    width: 56,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  iconPillActive: {
+    backgroundColor: "#EFF6FF",
+  },
+});

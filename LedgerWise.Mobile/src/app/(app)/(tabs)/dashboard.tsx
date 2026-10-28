@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
-  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,11 +33,7 @@ export default function DashboardScreen() {
   const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [transactionsError, setTransactionsError] = useState(false);
 
-  const [profileVisible, setProfileVisible] = useState(false);
-
   const [pendingCount, setPendingCount] = useState(0);
-  
-  const avatarInitial = (user?.name || "U").charAt(0).toUpperCase();
 
   // Load incoming transfers
   useFocusEffect(
@@ -124,7 +119,6 @@ export default function DashboardScreen() {
   async function handleLogout() {
     try {
       await signOut();
-      setProfileVisible(false);
       router.replace("/login");
     } catch (err) {
       console.error("Logout failed:", err);
@@ -161,18 +155,6 @@ export default function DashboardScreen() {
               {user?.name || "User"}
             </Text>
           </View>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.profileAvatar,
-              pressed && styles.pressed,
-            ]}
-            onPress={() => setProfileVisible(true)}
-            accessibilityRole="button"
-            accessibilityLabel="Open profile menu"
-          >
-            <Text style={styles.avatarText}>{avatarInitial}</Text>
-          </Pressable>
 
             <Pressable
             style={({ pressed }) => [
@@ -379,50 +361,6 @@ export default function DashboardScreen() {
           </View>
         )}
       </ScrollView>
-
-      {/* PROFILE MENU */}
-      <Modal
-        visible={profileVisible}
-        transparent
-        animationType="fade"
-        statusBarTranslucent
-        onRequestClose={() => setProfileVisible(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setProfileVisible(false)}
-        >
-          <Pressable
-            style={styles.profileMenu}
-            onPress={(event) => event.stopPropagation()}
-          >
-            <View style={styles.menuHeader}>
-              <View style={styles.menuAvatar}>
-                <Text style={styles.menuAvatarText}>{avatarInitial}</Text>
-              </View>
-
-              <View style={styles.menuUserInfo}>
-                <Text style={styles.menuName}>{user?.name || "User"}</Text>
-                <Text style={styles.menuEmail} numberOfLines={1}>
-                  {user?.email || ""}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.menuDivider} />
-
-            <Pressable
-              style={styles.menuLogout}
-              onPress={handleLogout}
-              accessibilityRole="button"
-              accessibilityLabel="Sign out"
-            >
-              <Text style={styles.menuLogoutText}>Sign out</Text>
-              <Ionicons name="log-out-outline" size={20} color={COLORS.error} />
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -470,18 +408,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
 
-  profileAvatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 3
-  },
-  
+
   notificationContainer: {
     position:'relative',
     width: 46,
@@ -493,13 +420,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
-  avatarText: {
-    fontSize: 18,
-    fontWeight: "500",
-    color: COLORS.primary,
-  },
-
   // WALLET CARD
   walletCard: {
     backgroundColor: COLORS.text,
@@ -763,85 +683,6 @@ const styles = StyleSheet.create({
 
   incomingAmount: {
     color: COLORS.success,
-  },
-
-  // PROFILE POPUP
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(20,35,64,0.35)",
-    justifyContent: "flex-start",
-    alignItems: "flex-end",
-    paddingTop: 105,
-    paddingHorizontal: 20,
-  },
-
-  profileMenu: {
-    width: 285,
-    maxWidth: "100%",
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    padding: 18,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8
-  },
-
-  menuHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-
-  menuAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#EFF6FF",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  menuAvatarText: {
-    color: COLORS.primary,
-    fontSize: 18,
-    fontWeight: "700",
-  },
-
-  menuUserInfo: {
-    flex: 1,
-  },
-
-  menuName: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 3,
-  },
-
-  menuEmail: {
-    color: COLORS.secondaryText,
-    fontSize: 12,
-  },
-
-  menuDivider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: 14,
-  },
-
-  menuLogout: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-
-  menuLogoutText: {
-    color: COLORS.error,
-    fontSize: 15,
-    fontWeight: "600",
   },
 
   notificationBadge: {
