@@ -7,8 +7,12 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  ScrollView
+  ScrollView,
+  Image
 } from "react-native";
+
+import products from "@/data/products.json";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -21,6 +25,15 @@ import {
   getIncomingTransfers,
 } from "../../../services/wallet";
 import { COLORS } from "../../../constants/colors";
+
+
+const productImageUrls: Record<number, string> = {
+  1: "https://images.unsplash.com/photo-1620322068252-e6f8ee316ecb?auto=format&fit=crop&w=600&q=70",
+  2: "https://images.pexels.com/photos/17489163/pexels-photo-17489163/free-photo-of-computer-server-in-data-center-room.jpeg?auto=compress&cs=tinysrgb&w=600",
+  3: "https://images.unsplash.com/photo-1724856349360-baaefb5e87f2?auto=format&fit=crop&w=600&q=70",
+  4: "https://images.unsplash.com/photo-1523726491678-bf852e717f6a?auto=format&fit=crop&w=600&q=70",
+};
+
 
 export default function DashboardScreen() {
   const { user, signOut } = useAuth();
@@ -375,6 +388,47 @@ export default function DashboardScreen() {
             })}
           </View>
         )}
+        {/* MARKETPLACE */}
+        <View style={styles.marketplaceSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Marketplace</Text>
+
+            <Pressable
+              onPress={() => router.push("/marketplace")}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="View all marketplace products"
+            >
+              <Text style={styles.seeAll}>View more</Text>
+            </Pressable>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.marketplaceRow}
+          >
+            {products.slice(0, 3).map((product) => (
+              <View key={product.id} style={styles.marketplaceCard}>
+                <View style={styles.marketplaceImageContainer}>
+                  <Image
+                    source={{ uri: productImageUrls[product.id] }}
+                    style={styles.marketplaceImage}
+                    resizeMode="cover"
+                  />
+                </View>
+
+                <Text style={styles.marketplaceName} numberOfLines={2}>
+                  {product.name}
+                </Text>
+
+                <Text style={styles.marketplacePrice}>
+                  {formatMoney(product.price)}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -715,5 +769,56 @@ const styles = StyleSheet.create({
     textAlign:'center',
     textAlignVertical:'center',
     paddingTop: 1
-  }
+  },
+
+  marketplaceSection: {
+  marginTop: 30,
+},
+  marketplaceRow: {
+    gap: 12,
+    paddingRight: 20,
+  },
+
+  marketplaceCard: {
+    width: 155,
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+    gap: 10,
+  },
+
+  marketplaceIcon: {
+    height: 90,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  marketplaceName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.text,
+    minHeight: 36,
+  },
+
+  marketplacePrice: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: COLORS.primary,
+  },
+  marketplaceImageContainer: {
+    width: "100%",
+    height: 110,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+
+  marketplaceImage: {
+    width: "100%",
+    height: "100%",
+  },
 });

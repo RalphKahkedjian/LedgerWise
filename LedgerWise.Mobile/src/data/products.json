@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "name": "Music Premium",
+    "price": 9.99,
+    "category": "Entertainment",
+    "icon": "musical-notes-outline"
+  },
+  {
+    "id": 2,
+    "name": "Cloud Storage",
+    "price": 4.99,
+    "category": "Technology",
+    "icon": "cloud-outline"
+  },
+  {
+    "id": 3,
+    "name": "Gaming Gift Card",
+    "price": 25.00,
+    "category": "Gaming",
+    "icon": "game-controller-outline"
+  },
+  {
+    "id": 4,
+    "name": "Learning Pass",
+    "price": 14.99,
+    "category": "Education",
+    "icon": "school-outline"
+  }
+]

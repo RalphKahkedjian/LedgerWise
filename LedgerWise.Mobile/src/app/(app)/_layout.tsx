@@ -40,6 +40,7 @@ export default function AppLayout() {
       <Stack.Screen name="transaction-details" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="scan-qr" />
+      <Stack.Screen name="marketplace" />
     </Stack>
   );
 }

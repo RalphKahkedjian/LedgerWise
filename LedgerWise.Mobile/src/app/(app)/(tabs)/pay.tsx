@@ -7,7 +7,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PayScreen() {
-  const [showQR, setShowQR] = useState(false);
+  const [showQR, setShowQR] = useState(true);
 
   return (
     <SafeAreaView style={styles.container}>
