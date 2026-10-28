@@ -18,22 +18,38 @@ public class WalletService : IWalletService
     }
 
     public async Task<ServiceResult<object>> DepositAsync(
-        ClaimsPrincipal user,
-        AmountRequest request)
+    ClaimsPrincipal user,
+    AmountRequest request)
     {
         if (request.Amount <= 0)
-            return ServiceResult<object>.Fail("Amount must be greater than zero.");
+            return ServiceResult<object>.Fail(
+                "Amount must be greater than zero.");
 
-        var userId = int.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userId = int.Parse(
+            user.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        var wallet = await _context.Wallets
-            .FirstOrDefaultAsync(w => w.UserId == userId);
+        await using var dbTransaction =
+            await _context.Database.BeginTransactionAsync();
 
-        if (wallet == null)
+        // Atomically increase wallet balance
+        var affectedRows = await _context.Wallets
+            .Where(w => w.UserId == userId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(
+                    w => w.Balance,
+                    w => w.Balance + request.Amount));
+
+        if (affectedRows == 0)
+        {
             return ServiceResult<object>.Fail("Wallet not found.");
+        }
 
-        wallet.Balance += request.Amount;
+        // Retrieve updated wallet
+        var wallet = await _context.Wallets
+            .AsNoTracking()
+            .FirstAsync(w => w.UserId == userId);
 
+        // Record deposit transaction
         _context.Transactions.Add(new Transaction
         {
             WalletId = wallet.Id,
@@ -42,6 +58,9 @@ public class WalletService : IWalletService
         });
 
         await _context.SaveChangesAsync();
+
+        // Commit balance and transaction history together
+        await dbTransaction.CommitAsync();
 
         return ServiceResult<object>.Ok(new
         {
@@ -54,21 +73,37 @@ public class WalletService : IWalletService
         AmountRequest request)
     {
         if (request.Amount <= 0)
-            return ServiceResult<object>.Fail("Amount must be greater than zero.");
+            return ServiceResult<object>.Fail(
+                "Amount must be greater than zero.");
 
-        var userId = int.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userId = int.Parse(
+            user.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
+        await using var dbTransaction =
+            await _context.Database.BeginTransactionAsync();
+
+        // Atomically deduct money only if sufficient funds exist
+        var affectedRows = await _context.Wallets
+            .Where(w =>
+                w.UserId == userId &&
+                w.Balance >= request.Amount)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(
+                    w => w.Balance,
+                    w => w.Balance - request.Amount));
+
+        if (affectedRows == 0)
+        {
+            return ServiceResult<object>.Fail(
+                "Insufficient funds or wallet not found.");
+        }
+
+        // Retrieve updated wallet information
         var wallet = await _context.Wallets
-            .FirstOrDefaultAsync(w => w.UserId == userId);
+            .AsNoTracking()
+            .FirstAsync(w => w.UserId == userId);
 
-        if (wallet == null)
-            return ServiceResult<object>.Fail("Wallet not found.");
-
-        if (wallet.Balance < request.Amount)
-            return ServiceResult<object>.Fail("Insufficient funds.");
-
-        wallet.Balance -= request.Amount;
-
+        // Record the withdrawal
         _context.Transactions.Add(new Transaction
         {
             WalletId = wallet.Id,
@@ -77,6 +112,9 @@ public class WalletService : IWalletService
         });
 
         await _context.SaveChangesAsync();
+
+        // Commit both operations
+        await dbTransaction.CommitAsync();
 
         return ServiceResult<object>.Ok(new
         {
@@ -358,8 +396,6 @@ public class WalletService : IWalletService
 
         return ServiceResult<object>.Ok(transfers);
     }
-
-    
     public async Task<ServiceResult<object>> RejectTransferAsync(
         ClaimsPrincipal user,
         int transferId)

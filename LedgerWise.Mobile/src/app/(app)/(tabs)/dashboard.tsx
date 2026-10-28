@@ -13,15 +13,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import {
   getWallet,
   getTransactions,
   type Wallet,
   type WalletTransaction,
   getIncomingTransfers,
-} from "../../services/wallet";
-import { COLORS } from "../../constants/colors";
+} from "../../../services/wallet";
+import { COLORS } from "../../../constants/colors";
 
 export default function DashboardScreen() {
   const { user, signOut } = useAuth();
@@ -479,7 +479,9 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     justifyContent: "center",
     alignItems: "center",
+    marginRight: 3
   },
+  
   notificationContainer: {
     position:'relative',
     width: 46,
@@ -494,13 +496,13 @@ const styles = StyleSheet.create({
 
   avatarText: {
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "500",
     color: COLORS.primary,
   },
 
   // WALLET CARD
   walletCard: {
-    backgroundColor: COLORS.text, // deep navy
+    backgroundColor: COLORS.text,
     borderRadius: 28,
     padding: 22,
     overflow: "hidden",
@@ -783,7 +785,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    elevation: 8
   },
 
   menuHeader: {
