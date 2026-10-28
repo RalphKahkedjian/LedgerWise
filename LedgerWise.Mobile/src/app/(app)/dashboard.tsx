@@ -19,6 +19,7 @@ import {
   getTransactions,
   type Wallet,
   type WalletTransaction,
+  getIncomingTransfers,
 } from "../../services/wallet";
 import { COLORS } from "../../constants/colors";
 
@@ -35,7 +36,36 @@ export default function DashboardScreen() {
 
   const [profileVisible, setProfileVisible] = useState(false);
 
+  const [pendingCount, setPendingCount] = useState(0);
+  
   const avatarInitial = (user?.name || "U").charAt(0).toUpperCase();
+
+  // Load incoming transfers
+  useFocusEffect(
+    useCallback(()=>{
+      let active = true;
+
+      async function loadIncomingTransfers() {
+        try {
+          const transfers = await getIncomingTransfers();
+
+          if (active) {
+            const pendingTransfers = transfers.filter(
+            (transfer) => transfer.status === "Pending"
+          );
+            setPendingCount(pendingTransfers.length);
+          }
+        } catch (err) {
+          console.error("Failed to load incoming transfers:", err);
+        }
+      }
+
+      loadIncomingTransfers();
+      return ()=> {
+        active=false;
+      }
+    }, [])
+  )
 
   // Load wallet balance
   useFocusEffect(
@@ -124,6 +154,7 @@ export default function DashboardScreen() {
       >
         {/* HEADER */}
         <View style={styles.header}>
+
           <View style={styles.headerInfo}>
             <Text style={styles.greeting}>Welcome back</Text>
             <Text style={styles.userName} numberOfLines={1}>
@@ -141,6 +172,23 @@ export default function DashboardScreen() {
             accessibilityLabel="Open profile menu"
           >
             <Text style={styles.avatarText}>{avatarInitial}</Text>
+          </Pressable>
+
+            <Pressable
+            style={({ pressed }) => [
+              styles.notificationContainer,
+              pressed && styles.pressed,
+            ]}
+            onPress={() => router.push("/notifications")}
+            accessibilityRole="button"
+            accessibilityLabel="Open notifications bar"
+          >
+            <Ionicons name="notifications-outline" size={20} color={COLORS.primary} />
+            {pendingCount > 0 &&
+              <Text style={styles.notificationBadge}>
+                {pendingCount}
+              </Text>
+            }
           </Pressable>
         </View>
 
@@ -423,6 +471,17 @@ const styles = StyleSheet.create({
   },
 
   profileAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  notificationContainer: {
+    position:'relative',
     width: 46,
     height: 46,
     borderRadius: 23,
@@ -782,4 +841,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
+
+  notificationBadge: {
+    position:'absolute',
+    top:-5,
+    right:-5,
+    color: COLORS.background,
+    width: 18,
+    height: 18,
+    borderRadius: 10,
+    alignItems: "center",
+    backgroundColor: COLORS.error,
+    fontWeight:'600',
+    fontSize: 12,
+    textAlign:'center',
+    textAlignVertical:'center',
+    paddingTop: 1
+  }
 });
