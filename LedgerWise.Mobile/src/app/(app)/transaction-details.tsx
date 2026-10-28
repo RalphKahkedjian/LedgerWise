@@ -1,4 +1,3 @@
-
 import { useCallback, useState } from "react";
 import {
   View,
@@ -32,12 +31,14 @@ function formatMoney(amount: number) {
 function DetailRow({
   label,
   value,
+  isLast,
 }: {
   label: string;
   value: string;
+  isLast?: boolean;
 }) {
   return (
-    <View style={styles.detailRow}>
+    <View style={[styles.detailRow, !isLast && styles.detailRowBorder]}>
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={styles.detailValue}>{value}</Text>
     </View>
@@ -99,19 +100,32 @@ export default function TransactionDetailsScreen() {
     transaction?.type === "Transfer In" ||
     transaction?.type === "Transfer Out";
 
+  const counterpartyName = transaction?.counterpartyName ?? "Unavailable";
+  const counterpartyInitial = transaction?.counterpartyName
+    ? transaction.counterpartyName.charAt(0).toUpperCase()
+    : "?";
+
   return (
     <SafeAreaView style={styles.container}>
-      <Pressable
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
-        <Ionicons
-          name="chevron-back"
-          size={24}
-          color={COLORS.text}
-        />
-        <Text style={styles.backText}>Back</Text>
-      </Pressable>
+      {/* HEADER */}
+      <View style={styles.topBar}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.backButton,
+            pressed && styles.pressed,
+          ]}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Ionicons name="chevron-back" size={22} color={COLORS.text} />
+        </Pressable>
+
+        <Text style={styles.topBarTitle}>Transaction details</Text>
+
+        {/* Spacer keeps the title centered */}
+        <View style={styles.backButtonSpacer} />
+      </View>
 
       {loading ? (
         <ActivityIndicator
@@ -135,113 +149,83 @@ export default function TransactionDetailsScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.content}
         >
-          <View style={styles.header}>
-            <View
-              style={[
-                styles.iconCircle,
-                {
-                  backgroundColor: incoming
-                    ? "#DCFCE7"
-                    : "#FEE2E2",
-                },
-              ]}
-            >
+          {/* HERO */}
+          <View style={styles.hero}>
+            <View style={styles.glowLarge} />
+            <View style={styles.glowSmall} />
+
+            <View style={styles.heroIcon}>
               <Ionicons
                 name={incoming ? "arrow-down" : "arrow-up"}
-                size={28}
-                color={
-                  incoming ? COLORS.success : COLORS.error
-                }
+                size={26}
+                color={incoming ? "#4ADE80" : "#FCA5A5"}
               />
             </View>
 
+            <Text style={styles.heroType}>{transaction.type}</Text>
+
             <Text
-              style={[
-                styles.amount,
-                incoming && styles.incomingAmount,
-              ]}
+              style={styles.heroAmount}
+              numberOfLines={1}
+              adjustsFontSizeToFit
             >
               {incoming ? "+" : "−"}
               {formatMoney(transaction.amount)}
             </Text>
 
-            <Text style={styles.transactionType}>
-              {transaction.type}
-            </Text>
-
             <View style={styles.statusBadge}>
-              <Ionicons
-                name="checkmark-circle"
-                size={16}
-                color={COLORS.success}
-              />
+              <Ionicons name="checkmark-circle" size={16} color="#4ADE80" />
               <Text style={styles.statusText}>Completed</Text>
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>
-            Transaction information
-          </Text>
+          {/* COUNTERPARTY (transfers only) */}
+          {isTransfer && (
+            <>
+              <Text style={styles.sectionTitle}>
+                {transaction.type === "Transfer In" ? "Sent by" : "Sent to"}
+              </Text>
+
+              <View style={styles.personCard}>
+                <View style={styles.personAvatar}>
+                  <Text style={styles.personAvatarText}>
+                    {counterpartyInitial}
+                  </Text>
+                </View>
+
+                <View style={styles.personInfo}>
+                  <Text style={styles.personName} numberOfLines={1}>
+                    {counterpartyName}
+                  </Text>
+                  <Text style={styles.personEmail} numberOfLines={1}>
+                    {transaction.counterpartyEmail ?? "Email unavailable"}
+                  </Text>
+                </View>
+              </View>
+            </>
+          )}
+
+          {/* DETAILS */}
+          <Text style={styles.sectionTitle}>Transaction information</Text>
 
           <View style={styles.detailsCard}>
-            {isTransfer && (
-              <>
-                <DetailRow
-                  label={
-                    transaction.type === "Transfer In"
-                      ? "Sent by"
-                      : "Sent to"
-                  }
-                  value={
-                    transaction.counterpartyName ??
-                    "Unavailable"
-                  }
-                />
-
-                <DetailRow
-                  label="Email"
-                  value={
-                    transaction.counterpartyEmail ??
-                    "Unavailable"
-                  }
-                />
-              </>
-            )}
-
-            <DetailRow
-              label="Transaction ID"
-              value={`#${transaction.id}`}
-            />
-
-            <DetailRow
-              label="Type"
-              value={transaction.type}
-            />
-
-            <DetailRow
-              label="Amount"
-              value={formatMoney(transaction.amount)}
-            />
+            <DetailRow label="Transaction ID" value={`#${transaction.id}`} />
 
             <DetailRow
               label="Date"
-              value={new Date(
-                transaction.createdAt
-              ).toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
+              value={new Date(transaction.createdAt).toLocaleDateString(
+                "en-US",
+                { month: "long", day: "numeric", year: "numeric" }
+              )}
             />
 
             <DetailRow
               label="Time"
-              value={new Date(
-                transaction.createdAt
-              ).toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              value={new Date(transaction.createdAt).toLocaleTimeString(
+                "en-US",
+                { hour: "2-digit", minute: "2-digit" }
+              )}
+              isLast
             />
           </View>
         </ScrollView>
@@ -257,17 +241,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
-  backButton: {
+  pressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.96 }],
+  },
+
+  // TOP BAR
+  topBar: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginTop: 16,
+    justifyContent: "space-between",
+    marginTop: 12,
     marginBottom: 20,
   },
 
-  backText: {
-    fontSize: 15,
-    fontWeight: "600",
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  backButtonSpacer: {
+    width: 44,
+    height: 44,
+  },
+
+  topBarTitle: {
+    fontSize: 17,
+    fontWeight: "700",
     color: COLORS.text,
   },
 
@@ -292,57 +298,133 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  header: {
-    alignItems: "center",
+  // HERO
+  hero: {
+    backgroundColor: COLORS.text,
+    borderRadius: 28,
     paddingVertical: 30,
-    gap: 12,
+    paddingHorizontal: 22,
+    alignItems: "center",
+    overflow: "hidden",
+    marginBottom: 28,
+    shadowColor: COLORS.text,
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 10,
   },
 
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  glowLarge: {
+    position: "absolute",
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    top: -110,
+    right: -80,
+    backgroundColor: COLORS.primary,
+    opacity: 0.55,
+  },
+
+  glowSmall: {
+    position: "absolute",
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    bottom: -70,
+    left: -50,
+    backgroundColor: COLORS.primary,
+    opacity: 0.18,
+  },
+
+  heroIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "rgba(255,255,255,0.14)",
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 14,
   },
 
-  amount: {
-    fontSize: 36,
+  heroType: {
+    fontSize: 14,
+    color: "#BFD3FB",
+    marginBottom: 6,
+  },
+
+  heroAmount: {
+    fontSize: 42,
     fontWeight: "800",
-    color: COLORS.text,
-  },
-
-  incomingAmount: {
-    color: COLORS.success,
-  },
-
-  transactionType: {
-    fontSize: 16,
-    color: COLORS.secondaryText,
+    color: "#FFFFFF",
+    letterSpacing: -1,
+    marginBottom: 16,
   },
 
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#DCFCE7",
+    backgroundColor: "rgba(74,222,128,0.16)",
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
   },
 
   statusText: {
-    color: COLORS.success,
+    color: "#4ADE80",
     fontSize: 13,
     fontWeight: "600",
   },
 
+  // SECTIONS
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "700",
     color: COLORS.text,
     marginBottom: 14,
-    marginTop: 14,
+  },
+
+  personCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 16,
+    marginBottom: 28,
+  },
+
+  personAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+
+  personAvatarText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.primary,
+  },
+
+  personInfo: {
+    flex: 1,
+  },
+
+  personName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: COLORS.text,
+    marginBottom: 3,
+  },
+
+  personEmail: {
+    fontSize: 13,
+    color: COLORS.secondaryText,
   },
 
   detailsCard: {
@@ -359,7 +441,10 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     gap: 16,
     paddingVertical: 17,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+
+  detailRowBorder: {
+    borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
 

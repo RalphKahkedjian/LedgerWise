@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import MyQRCode from "@/components/MyQRCode";
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
@@ -50,6 +51,29 @@ export default function ProfileScreen() {
           <Text style={styles.email} numberOfLines={1}>
             {user?.email || ""}
           </Text>
+        </View>
+
+        {/* RECEIVE MONEY (QR) */}
+        <Text style={styles.sectionTitle}>Receive money</Text>
+
+        <View style={styles.qrCard}>
+          <View style={styles.qrHeader}>
+            <View style={styles.infoIcon}>
+              <Ionicons name="qr-code-outline" size={18} color={COLORS.primary} />
+            </View>
+
+            <View style={styles.infoText}>
+              <Text style={styles.qrTitle}>My payment code</Text>
+              <Text style={styles.qrSubtitle}>
+                Let others scan this code to pay you.
+              </Text>
+            </View>
+          </View>
+
+          {/* White frame keeps the code easy to scan */}
+          <View style={styles.qrFrame}>
+            <MyQRCode />
+          </View>
         </View>
 
         {/* ACCOUNT DETAILS */}
@@ -195,7 +219,7 @@ const styles = StyleSheet.create({
     color: "#BFD3FB",
   },
 
-  // ACCOUNT DETAILS
+  // SECTIONS
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
@@ -203,6 +227,46 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
+  // QR CARD
+  qrCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 32,
+  },
+
+  qrHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+
+  qrTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: COLORS.text,
+    marginBottom: 3,
+  },
+
+  qrSubtitle: {
+    fontSize: 12,
+    color: COLORS.secondaryText,
+  },
+
+  qrFrame: {
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+
+  // ACCOUNT DETAILS
   infoCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 20,

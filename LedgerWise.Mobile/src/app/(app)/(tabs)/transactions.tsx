@@ -1,9 +1,9 @@
-
 import { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
   FlatList,
+  ScrollView,
   ActivityIndicator,
   StyleSheet,
   Pressable,
@@ -23,11 +23,14 @@ type TransactionGroup = {
   items: WalletTransaction[];
 };
 
-type TransactionFilter =
-  | "All"
-  | "Deposits"
-  | "Withdrawals"
-  | "Transfers";
+type TransactionFilter = "All" | "Deposits" | "Withdrawals" | "Transfers";
+
+const FILTERS: TransactionFilter[] = [
+  "All",
+  "Deposits",
+  "Withdrawals",
+  "Transfers",
+];
 
 function isIncoming(type: string) {
   return type === "Deposit" || type === "Transfer In";
@@ -107,8 +110,7 @@ export default function TransactionsScreen() {
   const { groups, totalIn, totalOut } = useMemo(() => {
     const sorted = [...filteredTransactions].sort(
       (a, b) =>
-        new Date(b.createdAt).getTime() -
-        new Date(a.createdAt).getTime()
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
     const map = new Map<string, WalletTransaction[]>();
@@ -116,12 +118,10 @@ export default function TransactionsScreen() {
     let outgoingTotal = 0;
 
     for (const transaction of sorted) {
-      const title = new Date(
-        transaction.createdAt
-      ).toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      });
+      const title = new Date(transaction.createdAt).toLocaleDateString(
+        "en-US",
+        { month: "long", year: "numeric" }
+      );
 
       if (!map.has(title)) {
         map.set(title, []);
@@ -137,10 +137,7 @@ export default function TransactionsScreen() {
     }
 
     return {
-      groups: Array.from(map, ([title, items]) => ({
-        title,
-        items,
-      })),
+      groups: Array.from(map, ([title, items]) => ({ title, items })),
       totalIn: incomingTotal,
       totalOut: outgoingTotal,
     };
@@ -161,75 +158,54 @@ export default function TransactionsScreen() {
                 onPress={() =>
                   router.push({
                     pathname: "/transaction-details",
-                    params: {
-                      id: String(transaction.id),
-                    },
+                    params: { id: String(transaction.id) },
                   })
                 }
-                style={[
+                style={({ pressed }) => [
                   styles.row,
-                  index < group.items.length - 1 &&
-                    styles.rowBorder,
+                  index < group.items.length - 1 && styles.rowBorder,
+                  pressed && styles.rowPressed,
                 ]}
               >
                 <View
                   style={[
                     styles.iconContainer,
-                    {
-                      backgroundColor: incoming
-                        ? "#DCFCE7"
-                        : "#FEE2E2",
-                    },
+                    { backgroundColor: incoming ? "#DCFCE7" : "#FEE2E2" },
                   ]}
                 >
                   <Ionicons
                     name={incoming ? "arrow-down" : "arrow-up"}
                     size={18}
-                    color={
-                      incoming ? COLORS.success : COLORS.error
-                    }
+                    color={incoming ? COLORS.success : COLORS.error}
                   />
                 </View>
 
                 <View style={styles.info}>
-                  <Text style={styles.type}>
-                    {transaction.type}
-                  </Text>
+                  <Text style={styles.type}>{transaction.type}</Text>
 
                   {transaction.counterpartyName ? (
-                    <Text
-                      style={styles.counterparty}
-                      numberOfLines={1}
-                    >
-                      {transaction.type === "Transfer In"
-                        ? "From: "
-                        : "To: "}
-                      {transaction.counterpartyName}
+                    <Text style={styles.counterparty} numberOfLines={1}>
+                      {transaction.type === "Transfer In" ? "From " : "To "}
+                      <Text style={styles.counterpartyName}>
+                        {transaction.counterpartyName}
+                      </Text>
                     </Text>
                   ) : null}
 
                   <Text style={styles.date}>
-                    {new Date(
-                      transaction.createdAt
-                    ).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
+                    {new Date(transaction.createdAt).toLocaleDateString(
+                      "en-US",
+                      { month: "short", day: "numeric", year: "numeric" }
+                    )}
                   </Text>
                 </View>
 
                 <View style={styles.amountContainer}>
                   <Text
-                    style={[
-                      styles.amount,
-                      incoming && styles.incomingAmount,
-                    ]}
+                    style={[styles.amount, incoming && styles.incomingAmount]}
                   >
                     {incoming ? "+" : "−"}
-                    {formatMoney(
-                      Math.abs(transaction.amount)
-                    )}
+                    {formatMoney(Math.abs(transaction.amount))}
                   </Text>
 
                   <Ionicons
@@ -249,17 +225,8 @@ export default function TransactionsScreen() {
   const summary = (
     <View style={styles.summaryRow}>
       <View style={styles.summaryCard}>
-        <View
-          style={[
-            styles.summaryIcon,
-            { backgroundColor: "#DCFCE7" },
-          ]}
-        >
-          <Ionicons
-            name="arrow-down"
-            size={16}
-            color={COLORS.success}
-          />
+        <View style={[styles.summaryIcon, { backgroundColor: "#DCFCE7" }]}>
+          <Ionicons name="arrow-down" size={16} color={COLORS.success} />
         </View>
 
         <Text style={styles.summaryLabel}>Money in</Text>
@@ -273,17 +240,8 @@ export default function TransactionsScreen() {
       </View>
 
       <View style={styles.summaryCard}>
-        <View
-          style={[
-            styles.summaryIcon,
-            { backgroundColor: "#FEE2E2" },
-          ]}
-        >
-          <Ionicons
-            name="arrow-up"
-            size={16}
-            color={COLORS.error}
-          />
+        <View style={[styles.summaryIcon, { backgroundColor: "#FEE2E2" }]}>
+          <Ionicons name="arrow-up" size={16} color={COLORS.error} />
         </View>
 
         <Text style={styles.summaryLabel}>Money out</Text>
@@ -314,9 +272,7 @@ export default function TransactionsScreen() {
             color={COLORS.placeholder}
           />
 
-          <Text style={styles.stateTitle}>
-            Something went wrong
-          </Text>
+          <Text style={styles.stateTitle}>Something went wrong</Text>
 
           <Text style={styles.stateText}>
             {error} Leave this screen and come back to try again.
@@ -331,55 +287,61 @@ export default function TransactionsScreen() {
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
             <View>
-              <Pressable
-                style={styles.backButton}
-                onPress={() => router.back()}
-              >
-                <Ionicons
-                  name="chevron-back"
-                  size={22}
-                  color={COLORS.text}
-                />
-                <Text style={styles.backText}>Back</Text>
-              </Pressable>
+              {/* HEADER */}
+              <View style={styles.header}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.backButton,
+                    pressed && styles.pressed,
+                  ]}
+                  onPress={() => router.back()}
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back"
+                >
+                  <Ionicons name="chevron-back" size={22} color={COLORS.text} />
+                </Pressable>
 
-              <Text style={styles.title}>
-                Transaction history
-              </Text>
-
-              <Text style={styles.subtitle}>
-                All your wallet activity in one place
-              </Text>
-
-              <View style={styles.filters}>
-                {(
-                  [
-                    "All",
-                    "Deposits",
-                    "Withdrawals",
-                    "Transfers",
-                  ] as const
-                ).map((item) => (
-                  <Pressable
-                    key={item}
-                    style={[
-                      styles.filterButton,
-                      filter === item && styles.activeFilter,
-                    ]}
-                    onPress={() => setFilter(item)}
-                  >
-                    <Text
-                      style={[
-                        styles.filterText,
-                        filter === item &&
-                          styles.activeFilterText,
-                      ]}
-                    >
-                      {item}
-                    </Text>
-                  </Pressable>
-                ))}
+                <View style={styles.headerText}>
+                  <Text style={styles.title}>Transaction history</Text>
+                  <Text style={styles.subtitle}>
+                    All your wallet activity in one place
+                  </Text>
+                </View>
               </View>
+
+              {/* FILTERS */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.filtersScroll}
+                contentContainerStyle={styles.filters}
+              >
+                {FILTERS.map((item) => {
+                  const selected = filter === item;
+
+                  return (
+                    <Pressable
+                      key={item}
+                      style={[
+                        styles.filterChip,
+                        selected && styles.filterChipActive,
+                      ]}
+                      onPress={() => setFilter(item)}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
+                    >
+                      <Text
+                        style={[
+                          styles.filterText,
+                          selected && styles.filterTextActive,
+                        ]}
+                      >
+                        {item}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
 
               {transactions.length > 0 ? summary : null}
             </View>
@@ -391,9 +353,7 @@ export default function TransactionsScreen() {
                 size={32}
                 color={COLORS.placeholder}
               />
-              <Text style={styles.stateTitle}>
-                No transactions found
-              </Text>
+              <Text style={styles.stateTitle}>No transactions found</Text>
               <Text style={styles.stateText}>
                 {transactions.length === 0
                   ? "Make a deposit to get started."
@@ -423,64 +383,86 @@ const styles = StyleSheet.create({
     marginTop: 60,
   },
 
-  backButton: {
+  pressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.96 }],
+  },
+
+  // HEADER
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    alignSelf: "flex-start",
-    marginBottom: 24,
-  },
-
-  backText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: COLORS.text,
-  },
-
-  title: {
-    fontSize: 26,
-    fontWeight: "700",
-    color: COLORS.text,
-    letterSpacing: -0.3,
-    marginBottom: 4,
-  },
-
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.secondaryText,
+    gap: 14,
     marginBottom: 22,
   },
 
-  filters: {
-    flexDirection: "row",
-    gap: 6,
-    marginBottom: 20,
-  },
-
-  filterButton: {
-    flex: 1,
-    paddingVertical: 11,
-    paddingHorizontal: 3,
-    borderRadius: 10,
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     alignItems: "center",
     justifyContent: "center",
   },
 
-  activeFilter: {
+  headerText: {
+    flex: 1,
+  },
+
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: COLORS.text,
+    letterSpacing: -0.3,
+    marginBottom: 2,
+  },
+
+  subtitle: {
+    fontSize: 13,
+    color: COLORS.secondaryText,
+  },
+
+  // FILTERS (bleed to the screen edges so chips scroll under the margin)
+  filtersScroll: {
+    marginHorizontal: -20,
+    marginBottom: 22,
+    flexGrow: 0,
+  },
+
+  filters: {
+    paddingHorizontal: 20,
+    gap: 8,
+  },
+
+  filterChip: {
+    height: 38,
+    paddingHorizontal: 18,
+    borderRadius: 19,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  filterChipActive: {
     backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
 
   filterText: {
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: "600",
     color: COLORS.secondaryText,
   },
 
-  activeFilterText: {
+  filterTextActive: {
     color: "#FFFFFF",
   },
 
+  // SUMMARY
   summaryRow: {
     flexDirection: "row",
     gap: 12,
@@ -518,6 +500,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
 
+  // GROUPS
   group: {
     marginBottom: 24,
   },
@@ -533,20 +516,25 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: 20,
-    paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
+    overflow: "hidden",
   },
 
   row: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 14,
+    paddingHorizontal: 16,
   },
 
   rowBorder: {
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
+  },
+
+  rowPressed: {
+    backgroundColor: COLORS.background,
   },
 
   iconContainer: {
@@ -560,6 +548,7 @@ const styles = StyleSheet.create({
 
   info: {
     flex: 1,
+    paddingRight: 8,
   },
 
   type: {
@@ -573,6 +562,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.secondaryText,
     marginBottom: 3,
+  },
+
+  counterpartyName: {
+    fontWeight: "600",
+    color: COLORS.text,
   },
 
   date: {
@@ -596,6 +590,7 @@ const styles = StyleSheet.create({
     color: COLORS.success,
   },
 
+  // EMPTY / ERROR
   stateWrap: {
     alignItems: "center",
     paddingHorizontal: 32,

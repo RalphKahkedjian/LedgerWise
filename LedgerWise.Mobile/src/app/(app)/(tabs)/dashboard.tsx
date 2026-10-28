@@ -7,7 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  ScrollView,
+  ScrollView
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -165,7 +165,7 @@ export default function DashboardScreen() {
             accessibilityRole="button"
             accessibilityLabel="Open notifications bar"
           >
-            <Ionicons name="notifications-outline" size={20} color={COLORS.primary} />
+            <Ionicons name="notifications-outline" size={22} color={COLORS.primary} />
             {pendingCount > 0 &&
               <Text style={styles.notificationBadge}>
                 {pendingCount}
@@ -260,6 +260,21 @@ export default function DashboardScreen() {
               <Ionicons name="swap-horizontal" size={18} color={COLORS.primary} />
             </View>
             <Text style={styles.quickActionText}>Transfer</Text>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.quickAction,
+              pressed && styles.pressed,
+            ]}
+            onPress={() => router.push("/scan_qr")}
+            accessibilityRole="button"
+            accessibilityLabel="Pay"
+          >
+            <View style={styles.quickActionIcon}>
+              <Ionicons name="qr-code-outline" size={18} color={COLORS.primary} />
+            </View>
+            <Text style={styles.quickActionText}>Pay</Text>
           </Pressable>
 
         </View>

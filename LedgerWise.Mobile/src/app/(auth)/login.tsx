@@ -122,10 +122,6 @@ export default function LoginScreen() {
             <View style={styles.glowLarge} />
             <View style={styles.glowSmall} />
 
-            <View style={styles.logo}>
-              <Text style={styles.logoText}>LW</Text>
-            </View>
-
             <Text style={styles.brandName}>LedgerWise</Text>
             <Text style={styles.tagline}>Finance, refined.</Text>
           </View>

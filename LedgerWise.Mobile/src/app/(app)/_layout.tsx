@@ -39,6 +39,7 @@ export default function AppLayout() {
       <Stack.Screen name="transfer" />
       <Stack.Screen name="transaction-details" />
       <Stack.Screen name="notifications" />
+      <Stack.Screen name="scan-qr" />
     </Stack>
   );
 }

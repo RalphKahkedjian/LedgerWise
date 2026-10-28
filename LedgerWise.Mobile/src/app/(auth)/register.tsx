@@ -166,9 +166,6 @@ export default function RegisterScreen() {
             <View style={styles.glowSmall} />
 
             <View style={styles.brandRow}>
-              <View style={styles.logo}>
-                <Text style={styles.logoText}>LW</Text>
-              </View>
 
               <View>
                 <Text style={styles.brandName}>LedgerWise</Text>
