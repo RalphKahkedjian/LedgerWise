@@ -292,8 +292,8 @@ const styles = StyleSheet.create({
 
   productPrice: {
     fontSize: 18,
-    fontWeight: "800",
-    color: COLORS.primary,
+    fontWeight: "700",
+    color: COLORS.text,
     letterSpacing: -0.3,
   },
 });

@@ -807,7 +807,7 @@ const styles = StyleSheet.create({
   marketplacePrice: {
     fontSize: 17,
     fontWeight: "700",
-    color: COLORS.primary,
+    color: COLORS.text,
   },
   marketplaceImageContainer: {
     width: "100%",
